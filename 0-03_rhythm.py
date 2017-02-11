@@ -1,6 +1,7 @@
 from music import *
 from random import *
 from itertools import *
+from operator import add
 
 # --- INPUT ---
 # Note there's currently very little flexibility in the input file structure
@@ -104,21 +105,53 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # End of loop: now it goes on to the next chord in the chord list
    
    # --- ANALYSIS IS COMPLETE ---
-   # We now have lists containing the roots, 3rds, 5ths, 7ths and 9ths in sequence
+   # We now have lists containing the roots, 3rds, 5ths, 7ths, 9ths and preferred scales in sequence
    
    # --- MELODY GENERATION WITH RHYTHM ---
    # The steps are as follows:
-   # 1. pick target chord notes to end each 2-bar section on
-   # 2. pick phrase shapes for each 2-bar section
-   # 3. pick a phrase melodic range; this may be determined partly by the end notes
+   # 1. pick phrase shapes for each 2-bar section
+   # 2. pick a phrase melodic range; this may be determined partly by the end notes
+   # 3. pick target chord notes to end each 2-bar section on
    # 4. construct the phrase based on the parameters above, using scale notes
    
-   # Pick two target notes
+   # (1) pick phrase shapes.
+   # First build lists representing the possibile starting shapes
+   shape0 = [-7, -6, -5, -4, -3, -2, -1, 0]
+   shape1 = [7, 6, 5, 4, 3, 2, 1, 0]
+   shape2 = [-2, 0, 2, 4, 6, 4, 2, 0]
+   shape3 = [2, 0, -2, -4, -6, -4, -2, 0]
+   shape4 = [2, 4, 6, 4, 2, 0, -2, 0]
+   shape5 = [-2, -4, -6, -4, -2, 0, 2, 0]
+   # now choose a shape for the first two bars
+   target_shape1 = choice([shape0, shape1, shape2, shape3, shape4, shape5])
+   # It can be interesting to have the same shape over different chords.
+   # Toss a coin to see if we'll force shape2 to match shape1
+   if choice([True, False]):
+      target_shape2 = target_shape1
+   # if not, then we'll need to choose a target_shape2 as well (noting that it's not
+   # excluded from matching shape1)
+   else: target_shape2 = choice([shape0, shape1, shape2, shape3, shape4, shape5])
+
+   # (2) pick a target melodic range in general terms (small, medium, large)
+   # This will apply to the whole four bars
+   target_range = choice(['small', 'medium', 'large'])
+   # compress or expand the target shape correspondingly
+   if target_range == 'small':
+      target_shape1 = [int(x*0.5) for x in target_shape1] # note some shapes end up with repeated notes
+      target_shape2 = [int(x*0.5) for x in target_shape2] # but that's not considered a problem
+   elif target_range == 'large':
+      target_shape1 = [int(x*2) for x in target_shape1]
+      target_shape2 = [int(x*2) for x in target_shape2]
+    
+   # (3) pick target chord notes
    # Randomly choose either the 3rd or 7th in the lower, middle or higher octave
-   degree1 = choice(['third', 'seventh'])
-   octave1 = choice([3, 4, 5])
-   degree2 = choice(['third', 'seventh'])
-   octave2 = choice([3, 4, 5])
+   degree1 = choice(['third', 'seventh']) # end the first two bars on 3 or 7
+   if target_range == 'small':
+      octave1 = choice([3, 4])
+   else:
+      octave1 = 4
+   degree2 = choice(['root', 'fifth']) # end the fourth bar on 1 or 5
+   octave2 = octave1                      # avoid too much jumping around
    # Translate those selections into actual notes, using the 'third' and 'seventh' lists
    if degree1 == 'third':
       target_note1 = thirds[2]
@@ -126,22 +159,116 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # The lists are in octave 3. Add 12 or 24 for octave 4 or 5
    target_note1 = target_note1+((octave1-3)*12)
    # Now do the same for the second target note
-   if degree2 == 'third':
-      target_note2 = thirds[6]
-   else: target_note2 = sevenths[6]
+   if degree2 == 'fifth':
+      target_note2 = fifths[6]
+   else: target_note2 = roots[6]
    target_note2 = target_note2+((octave2-3)*12)
-   
-   # Pick two phrase shapes. These are simply numbered 0 to 5 so it's an integer selection
-   shape1 = randrange(6)
-   shape2 = randrange(6)
-   # It can be interesting to have the same shape over different chords.
-   # Toss a coin to see if we'll force shape2 to match shape1
-   if choice([True, False]):
-      shape2 = shape1
+ 
+    
+   # --- GENERATE THE FIRST TWO BARS ---
+   # generate lists of possible starting notes based on the preferred scales
+   # start by defining the root and scale
+   start_root = roots[0]            # this is the root note in octave 3
+   start_scale = preferred_scales[0]
+   if start_scale == 'Major':
+      start_scale = MAJOR_SCALE     # using the Jython Music built-in scale definitions
+   elif start_scale == 'Dorian':
+      start_scale = DORIAN_SCALE
+   elif start_scale == 'Min-b5':
+      start_scale = [0, 2, 3, 5, 6, 9, 10]
+   elif start_scale == 'Mixolydian':
+      start_scale = MIXOLYDIAN_SCALE
+   else:
+      start_scale = CHROMATIC_SCALE  # this is the fall-through
+   # now create a list of all starting scale notes across several octaves
+   scale_constructor = [start_root-36]*len(start_scale) + [start_root-24]*len(start_scale) \
+                     + [start_root-12]*len(start_scale) + [start_root]*len(start_scale) \
+                     + [start_root+12]*len(start_scale) + [start_root+24]*len(start_scale) \
+                     + [start_root+36]*len(start_scale)
+   start_scale = map(add, scale_constructor, start_scale*7)
+   # we have a list of all scale notes across 7 octaves
+   # now pick the nearest scale note to the desired starting note, based on the
+   # target end note and the target shape
+   approximate_start_note = target_note1 + target_shape1[0]
+   start_note = min(start_scale, key=lambda x: abs(x-approximate_start_note))
 
-   # Pick a target melodic range in general terms (small, medium, large)
-   # This will apply to the whole four bars
-   target_range = choice(['small', 'medium', 'large'])
+   # Hooray! We have a start note!
+   
+   # Do a sanity check to ensure at least either the start or finish note is in the mid-range
+   # which we'll define as F to F around middle-C (MIDI notes 53 to 65
+   if start_note > 65 and target_note1 > 65:
+      start_note -= 12
+      target_note1 -= 12
+   elif start_note < 54 and target_note1 < 54:
+      start_note += 12
+      target_note2 += 12
+   
+   # Now work through target_shape1 ASSUMING it's the same chord as the start note
+   # This assumption is true for 'Autumn Leaves' but will not always be true
+   middle_notes = range(5)
+   for i, n in enumerate(middle_notes):
+      approximate_note = target_note1 + target_shape1[i+1]
+      middle_notes[i] = min(start_scale, key=lambda x: abs(x-approximate_note))
+      
+   # We have our notes, and the rythm is pre-set in this version. We're ready to build the phrase
+   improv.addNoteList([REST, start_note]+middle_notes+[target_note1, REST, REST],\
+                      [QNT, QN, ENT, QNT, ENT, QNT, ENT, HN, QN, QNT])
+
+   # --- NOW REPEAT FOR THE NEXT TWO BARS ---
+   # Note: we have a pickup note now
+   # generate lists of possible starting notes based on the preferred scales
+   # start by defining the root and scale
+   start_root = roots[4]            # this is the root note in octave 3
+   start_scale = preferred_scales[4]
+   if start_scale == 'Major':
+      start_scale = MAJOR_SCALE     # using the Jython Music built-in scale definitions
+   elif start_scale == 'Dorian':
+      start_scale = DORIAN_SCALE
+   elif start_scale == 'Min-b5':
+      start_scale = [0, 2, 3, 5, 6, 9, 10]
+   elif start_scale == 'Mixolydian':
+      start_scale = MIXOLYDIAN_SCALE
+   else:
+      start_scale = CHROMATIC_SCALE  # this is the fall-through
+   # now create a list of all starting scale notes across several octaves
+   scale_constructor = [start_root-36]*len(start_scale) + [start_root-24]*len(start_scale) \
+                     + [start_root-12]*len(start_scale) + [start_root]*len(start_scale) \
+                     + [start_root+12]*len(start_scale) + [start_root+24]*len(start_scale) \
+                     + [start_root+36]*len(start_scale)
+   start_scale = map(add, scale_constructor, start_scale*7)
+   # we have a list of all scale notes across 7 octaves
+   # now pick the nearest scale note to the desired starting note, based on the
+   # target end note and the target shape
+   approximate_start_note = target_note2 + target_shape2[0]
+   start_note = min(start_scale, key=lambda x: abs(x-approximate_start_note))
+
+   # Hooray! We have a start note!
+   
+   # Do a sanity check to ensure at least either the start or finish note is in the mid-range
+   # which we'll define as G to G around middle-C (MIDI notes 55 to 67
+   if start_note > 66 and target_note2 > 66:
+      start_note -= 12
+      target_note2 -= 12
+   elif start_note < 55 and target_note2 < 55:
+      start_note += 12
+      target_note2 += 12
+   
+   pickup_note = choice([start_note+1, start_note-1])
+   
+   # Now work through target_shape1 ASSUMING it's the same chord as the start note
+   # This assumption is true for 'Autumn Leaves' but will not always be true
+   middle_notes = range(5)
+   for i, n in enumerate(middle_notes):
+      approximate_note = target_note2 + target_shape2[i+1]
+      middle_notes[i] = min(start_scale, key=lambda x: abs(x-approximate_note))
+      
+   # We have our notes, and the rythm is pre-set in this version. We're ready to build the phrase
+   improv.addNoteList([pickup_note, REST, start_note]+middle_notes+[target_note2, REST], \
+                      [ENT, QNT, QN, ENT, QNT, ENT, QNT, ENT, HN, HN])
+
+
       
 # OUTPUT
-# Play.midi(smallSteps)
+#improv.setTempo(140)
+#Play.midi(improv)
+Write.midi(improv, 'improv1.mid')
