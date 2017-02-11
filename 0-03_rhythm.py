@@ -110,7 +110,7 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # --- MELODY GENERATION WITH RHYTHM ---
    # The steps are as follows:
    # 1. pick phrase shapes for each 2-bar section
-   # 2. pick a phrase melodic range; this may be determined partly by the end notes
+   # 2. pick a phrase melodic range
    # 3. pick target chord notes to end each 2-bar section on
    # 4. construct the phrase based on the parameters above, using scale notes
    
@@ -144,15 +144,16 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
       target_shape2 = [int(x*2) for x in target_shape2]
     
    # (3) pick target chord notes
-   # Randomly choose either the 3rd or 7th in the lower, middle or higher octave
-   degree1 = choice(['third', 'seventh']) # end the first two bars on 3 or 7
+   # Randomly choose either the 3rd or 7th to end the first 2 bars on
+   degree1 = choice(['third', 'seventh'])
+   # choose an octave for the target note; 3 or 4 if the range isn't too big
    if target_range == 'small':
       octave1 = choice([3, 4])
-   else:
+   else:					# range might be too big; constrain it to octave 4
       octave1 = 4
-   degree2 = choice(['root', 'fifth']) # end the fourth bar on 1 or 5
+   degree2 = choice(['root', 'fifth'])    # end the fourth bar on 1 or 5
    octave2 = octave1                      # avoid too much jumping around
-   # Translate those selections into actual notes, using the 'third' and 'seventh' lists
+   # Translate those selections into actual notes, using the lists
    if degree1 == 'third':
       target_note1 = thirds[2]
    else: target_note1 = sevenths[2]
@@ -189,7 +190,9 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # we have a list of all scale notes across 7 octaves
    # now pick the nearest scale note to the desired starting note, based on the
    # target end note and the target shape
+   # first the 'approximate' note; what it would be if not constrained by scale
    approximate_start_note = target_note1 + target_shape1[0]
+   # now the 'actual' note, which is the nearest scale note to the approx note
    start_note = min(start_scale, key=lambda x: abs(x-approximate_start_note))
 
    # Hooray! We have a start note!
@@ -216,12 +219,11 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
 
    # --- NOW REPEAT FOR THE NEXT TWO BARS ---
    # Note: we have a pickup note now
-   # generate lists of possible starting notes based on the preferred scales
-   # start by defining the root and scale
-   start_root = roots[4]            # this is the root note in octave 3
+   # the process is essentially a repeat of the above
+   start_root = roots[4]
    start_scale = preferred_scales[4]
    if start_scale == 'Major':
-      start_scale = MAJOR_SCALE     # using the Jython Music built-in scale definitions
+      start_scale = MAJOR_SCALE
    elif start_scale == 'Dorian':
       start_scale = DORIAN_SCALE
    elif start_scale == 'Min-b5':
@@ -253,9 +255,11 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
       start_note += 12
       target_note2 += 12
    
+   # select the pickup note to be a semitone above or below the start note
    pickup_note = choice([start_note+1, start_note-1])
    
-   # Now work through target_shape1 ASSUMING it's the same chord as the start note
+   # Now work through target_shape2 ASSUMING it's the same chord as the start note
+   # i.e. one chord carries through the whole first bar
    # This assumption is true for 'Autumn Leaves' but will not always be true
    middle_notes = range(5)
    for i, n in enumerate(middle_notes):
