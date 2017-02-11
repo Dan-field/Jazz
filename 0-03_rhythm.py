@@ -195,13 +195,13 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # Hooray! We have a start note!
    
    # Do a sanity check to ensure at least either the start or finish note is in the mid-range
-   # which we'll define as F to F around middle-C (MIDI notes 53 to 65
-   if start_note > 65 and target_note1 > 65:
+   # which we'll define as Bb to Bb around middle-C (MIDI notes 58 to 70
+   if start_note > 70 and target_note1 > 70:
       start_note -= 12
       target_note1 -= 12
-   elif start_note < 54 and target_note1 < 54:
+   elif start_note < 58 and target_note1 < 58:
       start_note += 12
-      target_note2 += 12
+      target_note1 += 12
    
    # Now work through target_shape1 ASSUMING it's the same chord as the start note
    # This assumption is true for 'Autumn Leaves' but will not always be true
@@ -245,11 +245,11 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # Hooray! We have a start note!
    
    # Do a sanity check to ensure at least either the start or finish note is in the mid-range
-   # which we'll define as G to G around middle-C (MIDI notes 55 to 67
-   if start_note > 66 and target_note2 > 66:
+   # which we'll define as Bb to Bb around middle-C (MIDI notes 58 to 70
+   if start_note > 70 and target_note2 > 70:
       start_note -= 12
       target_note2 -= 12
-   elif start_note < 55 and target_note2 < 55:
+   elif start_note < 58 and target_note2 < 58:
       start_note += 12
       target_note2 += 12
    
