@@ -134,7 +134,7 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
 
    # (2) pick a target melodic range in general terms (small, medium, large)
    # This will apply to the whole four bars
-   target_range = choice(['small', 'medium', 'large'])
+   target_range = choice(['small', 'medium', 'medium', 'medium', 'large', 'large', 'large', 'large', 'large'])
    # compress or expand the target shape correspondingly
    if target_range == 'small':
       target_shape1 = [int(x*0.5) for x in target_shape1] # note some shapes end up with repeated notes
@@ -221,22 +221,27 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # -------------------------
    # Select a rhythm suggested in Jamey Aebersold's red book
    rhythm_number = choice(range(6))
-   if rhythm_number == 0:
-      notes = [REST, pickup_note, start_note]+middle_notes+[target_note1, REST]
-      rhythm = [QNT, ENT, ENT, ENT, ENT, QNT, ENT, QNT, ENT, HN, HN]
-   elif rhythm_number == 1:
-      notes = [REST, start_note]+middle_notes[:5]+[target_note1, REST]
-      rhythm = [QNT, QN, ENT, QNT, ENT, QNT, ENT, HN, HN]
-   elif rhythm_number == 2:
+   #if rhythm_number == 0:
+   #   notes = [REST, pickup_note, start_note]+middle_notes+[target_note1, REST]
+   #   rhythm = [QNT, ENT, ENT, ENT, ENT, QNT, ENT, QNT, ENT, HN, HN]
+   #elif rhythm_number == 1:
+   #   notes = [REST, start_note]+middle_notes[:5]+[target_note1, REST]
+   #   rhythm = [QNT, QN, ENT, QNT, ENT, QNT, ENT, HN, HN]
+   if rhythm_number == 0 or rhythm_number == 1:
       notes = middle_notes[0:2]+middle_notes[1:6]
       notes.insert(0, start_note)
       notes.insert(3, middle_notes[0])
       notes.insert(4, start_note)
       notes.insert(10, target_note1)
       rhythm = [QNT, ENT, QNT, ENT, DQN, EN, QNT, ENT, QNT, ENT, HN]
-   elif rhythm_number == 3 or 4 or 5:
+   elif rhythm_number == 2 or rhythm_number == 3:
       notes = [REST, pickup_note, start_note]+middle_notes[1:6]+[target_note1, REST]
       rhythm = [QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, HN, HN]
+   elif rhythm_number == 4 or rhythm_number == 5:
+      notes = middle_notes[0:3]+middle_notes[1:5]+middle_notes[2:6]
+      notes.insert(0, start_note)
+      notes.insert(12, target_note1)
+      rhythm = [QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, HN]
    
    # We have our notes, and the rythm is pre-set in this version. We're ready to build the phrase
    improv.addNoteList(notes, rhythm)
@@ -296,22 +301,27 @@ for chord1, chord2, chord3, chord4, chord5, chord6, chord7, chord8 in izip(*[ite
    # Select a rhythm suggested in Jamey Aebersold's red book
    # set to make the last one most likely
    rhythm_number = choice(range(6))
-   if rhythm_number == 0:
+   if rhythm_number == 0 or rhythm_number == 1:
       notes = [REST, pickup_note, start_note]+middle_notes+[target_note2, REST]
       rhythm = [QNT, ENT, ENT, ENT, ENT, QNT, ENT, QNT, ENT, HN, HN]
-   elif rhythm_number == 1:
+   elif rhythm_number == 2 or rhythm_number == 3:
       notes = [REST, start_note]+middle_notes[:5]+[target_note2, REST]
       rhythm = [QNT, QN, ENT, QNT, ENT, QNT, ENT, HN, HN]
-   elif rhythm_number == 2:
-      notes = middle_notes[0:2]+middle_notes[1:6]
-      notes.insert(0, start_note)
-      notes.insert(3, middle_notes[0])
-      notes.insert(4, start_note)
-      notes.insert(10, target_note2)
-      rhythm = [QNT, ENT, QNT, ENT, DQN, EN, QNT, ENT, QNT, ENT, HN]
-   elif rhythm_number == 3 or 4 or 5:
+   #elif rhythm_number == 2:
+   #   notes = middle_notes[0:2]+middle_notes[1:6]
+   #   notes.insert(0, start_note)
+   #   notes.insert(3, middle_notes[0])
+   #   notes.insert(4, start_note)
+   #   notes.insert(10, target_note2)
+   #   rhythm = [QNT, ENT, QNT, ENT, DQN, EN, QNT, ENT, QNT, ENT, HN]
+   elif rhythm_number == 4:
       notes = [REST, pickup_note, start_note]+middle_notes[1:6]+[target_note2, REST]
       rhythm = [QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, HN, HN]
+   elif rhythm_number == 5:
+      notes = middle_notes[0:3]+middle_notes[1:5]+middle_notes[2:6]
+      notes.insert(0, start_note)
+      notes.insert(12, target_note2)
+      rhythm = [QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, QNT, ENT, HN]
    
    # We have our notes, and the rythm is pre-set in this version. We're ready to build the phrase
    improv.addNoteList(notes, rhythm)
