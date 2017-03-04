@@ -3,7 +3,7 @@
 # contains functions to be used in the improvisor             #
 # check out www.github.com/dan-field/jazz for info and rights #
 ###############################################################
-
+from music import *
 
 def GetChords(fname):
    with open(fname) as f:
@@ -30,11 +30,41 @@ def GetChords(fname):
    
    bars = []
    this_bar = []
-   for element in chords:
-      if element == '|':
-         bars.append(this_bar)
-         this_bar = []
+   for element in chords: # each element is a single chord or a barline
+      if element == '|': # end of a bar
+         bars.append(this_bar) # add existing bar to the list of bars
+         this_bar = [] # start a fresh new bar
       else:
-         this_bar.append(element)
+         this_bar.append(element) # add the chord to the current bar
 
    return(chords, bars)
+
+def BreakDown(bar):
+   roots = []
+   durations = []
+   chord_duration = 1.0/len(bar) # because the mini-language requires bars to be evenly divided
+   for chord in bar:
+      if chord != '/': # it's an actual chord, not a repeat
+         # convert the standard chord notation into Jython notation
+         root = chord[0]
+         if len(chord) > 1:
+            if chord[1] == 'b':
+               root += 'F'
+            elif chord[1] == '#':
+               root += 'S'
+         roots.append(root)
+         durations.append(chord_duration)
+      else: # not a new chord; actually a longer holding of the previous chord
+         # the previous chord is currently the last item in the list
+         durations[-1] = durations[-1]+chord_duration
+   
+   return(roots, durations)
+
+def Octavify(roots, octave): # octave number as string, to make concatenation easier
+   MIDI_nums = []
+   for element in roots:
+      element += octave # concatenation of chord root with MIDI octave number
+      note = eval(element) # Jython Music evaluates the string to a MIDI note number
+      MIDI_nums.append(note)
+      
+   return(MIDI_nums)
