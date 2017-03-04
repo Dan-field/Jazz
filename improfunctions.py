@@ -39,10 +39,10 @@ def GetChords(fname):
 
    return(chords, bars)
 
-def BreakDown(bar):
+def BreakDown(bar, beats):
    roots = []
    durations = []
-   chord_duration = 1.0/len(bar) # because the mini-language requires bars to be evenly divided
+   chord_duration = beats/len(bar) # because the mini-language requires bars to be evenly divided
    for chord in bar:
       if chord != '/': # it's an actual chord, not a repeat
          # convert the standard chord notation into Jython notation
