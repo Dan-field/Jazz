@@ -7,9 +7,9 @@ volume = 100
 note = 42
 
 d = Display("tapping", 270, 200)
-minTempo = 20
-maxTempo = 240
-startTempo = 120
+minTempo = 45
+maxTempo = 290
+startTempo = tempo
 minVol = 0
 maxVol = 127
 startVol = volume
