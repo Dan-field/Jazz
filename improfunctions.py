@@ -3,6 +3,13 @@
 # contains functions to be used in the improvisor             #
 # check out www.github.com/dan-field/jazz for info and rights #
 ###############################################################
+
+# functions included:
+#
+# GetChords(fname) - reads the chord chart
+# BreakDown(bar, beats) - breaks a bar into its roots and durations (crotchet = 1.0)
+# Octavify(roots, octave) - appends octave number to the root names
+
 from music import *
 
 def GetChords(fname):
