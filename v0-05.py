@@ -1,5 +1,7 @@
 from improfunctions import *
+from timerfunction import *
 from music import *
+import threading
 
 output = Phrase()
 
@@ -15,4 +17,6 @@ for bar_count, bar in enumerate(bars):
    output.addNoteList(root_numbers, durations)
    print roots, root_numbers, durations
 output.setTempo(200)
+
 Play.midi(output)
+startTimer()
