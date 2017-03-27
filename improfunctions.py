@@ -51,19 +51,18 @@ def BreakDown(bar, beats):
    durations = []
    chord_duration = beats/len(bar) # because the mini-language requires bars to be evenly divided
    for chord in bar:
-      if chord != '/': # it's an actual chord, not a repeat
-         # convert the standard chord notation into Jython notation
+      # convert the standard chord notation into Jython notation
+      if chord[0] == '/':
+         root = 'R'
+      else:
          root = chord[0]
          if len(chord) > 1:
             if chord[1] == 'b':
                root += 'F'
             elif chord[1] == '#':
                root += 'S'
-         roots.append(root)
-         durations.append(chord_duration)
-      else: # not a new chord; actually a longer holding of the previous chord
-         # the previous chord is currently the last item in the list
-         durations[-1] = durations[-1]+chord_duration
+      roots.append(root)
+      durations.append(chord_duration)
    
    return(roots, durations)
 
