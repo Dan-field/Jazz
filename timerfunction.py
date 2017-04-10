@@ -22,8 +22,9 @@ def killTimer():
    global kill
    kill = True
 
-def startTimer():
-   note = 42
+def startTimer(note_list, duration_list):
+
+   position = 0
    
    d = Display("tap", 270, 240)
    minTempo = 45
@@ -43,8 +44,13 @@ def startTimer():
    d.add(slider2, 40, 150)
    d.add(button1, 40, 210)
    
+   global kill
    while(kill == False):
-      Play.noteOn(note, volume, 9)
-      sleep(60.0/tempo)
-      Play.noteOff(note, 9)
+      Play.noteOn(note_list[position], volume, 0)
+      sleep(60.0*duration_list[position]/tempo)
+      Play.noteOff(note_list[position], 0)
+      if len(note_list)-1 > position:
+         position += 1
+      else:
+         kill = True
    
