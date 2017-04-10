@@ -72,5 +72,24 @@ def Octavify(roots, octave): # octave number as string, to make concatenation ea
       element += octave # concatenation of chord root with MIDI octave number
       note = eval(element) # Jython Music evaluates the string to a MIDI note number
       MIDI_nums.append(note)
-      
    return(MIDI_nums)
+
+def ExtractRoots(bars, beats_per_bar):
+   roots = [] # initialise an empty list for the root notes
+   durations = [] # initialise an empty list for the durations
+   last_root = 'NC' # initialise the last root, which will be needed if there's a chord repeat symbol
+   # Work through one bar at a time
+   for bar_count, bar in enumerate(bars):
+      # get the root notes and durations
+      roots_this_bar, durations_this_bar = BreakDown(bar, beats_per_bar)
+      if roots_this_bar[-1] != 'R': # the bar contains actual chords, not a 'repeat chord' symbol
+         root_numbers = Octavify(roots_this_bar, '3') # pass the MIDI octave number as a string
+         last_root = root_numbers
+      else:
+         root_numbers = last_root
+      roots.append(root_numbers)
+      durations.append(durations_this_bar)
+   # the next two lines make 'flat' lists out of the lists of lists
+   roots_flat = [item for sublist in roots for item in sublist]
+   durations_flat = [item for sublist in durations for item in sublist]
+   return roots_flat, durations_flat
