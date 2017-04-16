@@ -22,6 +22,12 @@ def setVolume(newVolume):
 def killTimer():
    global kill
    kill = True
+   
+def tap():
+   global volume, tempo
+   Play.noteOn(42, volume, 9)
+   sleep(10.0/tempo)
+   Play.noteOff(42, 9)
 
 def startTimer(note_list, duration_list):
 
@@ -46,20 +52,23 @@ def startTimer(note_list, duration_list):
    d.add(button1, 40, 210)
    
    global kill
+   # run the central counter
    while(kill == False):
-      # add a bit of randomness to the volume
-      thisvol = volume + randint(-12, 12)
-      if thisvol > 127: thisvol = 127
-      if thisvol < 0: thisvol = 0
-      # play the next note in the list
-      # randomise the held length slightly
-      holdpercent = (85 + randint(0,15))/100.0
-      Play.noteOn(note_list[position], thisvol, 0)
-      sleep(60.0*duration_list[position]*holdpercent/tempo)
-      Play.noteOff(note_list[position], 0)
-      sleep(60.0*duration_list[position]*(1.0-holdpercent)/tempo)
+      tap()
+      sleep(60.0/tempo)
       if len(note_list)-1 > position:
          position += 1
       else:
          kill = True
    
+#      # add a bit of randomness to the volume
+#      thisvol = volume + randint(-12, 12)
+#      if thisvol > 127: thisvol = 127
+#      if thisvol < 0: thisvol = 0
+#      # play the next note in the list
+#      # randomise the held length slightly
+#      holdpercent = (85 + randint(0,15))/100.0
+#      Play.noteOn(note_list[position], thisvol, 0)
+#      sleep(60.0*duration_list[position]*holdpercent/tempo)
+#      Play.noteOff(note_list[position], 0)
+#      sleep(60.0*duration_list[position]*(1.0-holdpercent)/tempo)
