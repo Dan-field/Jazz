@@ -1,6 +1,7 @@
 from time import sleep
 from music import *
 from gui import *
+from random import randint
 
 tempo = 175
 volume = 100
@@ -46,9 +47,17 @@ def startTimer(note_list, duration_list):
    
    global kill
    while(kill == False):
-      Play.noteOn(note_list[position], volume, 0)
-      sleep(60.0*duration_list[position]/tempo)
+      # add a bit of randomness to the volume
+      thisvol = volume + randint(-12, 12)
+      if thisvol > 127: thisvol = 127
+      if thisvol < 0: thisvol = 0
+      # play the next note in the list
+      # randomise the held length slightly
+      holdpercent = (85 + randint(0,15))/100.0
+      Play.noteOn(note_list[position], thisvol, 0)
+      sleep(60.0*duration_list[position]*holdpercent/tempo)
       Play.noteOff(note_list[position], 0)
+      sleep(60.0*duration_list[position]*(1.0-holdpercent)/tempo)
       if len(note_list)-1 > position:
          position += 1
       else:
