@@ -52,6 +52,8 @@ def BreakDown(bar, beats):
    chord_duration = beats/len(bar) # because the mini-language requires bars to be evenly divided
    for chord in bar:
       # convert the standard chord notation into Jython notation
+      # and extract the chord type
+      foundquality = False
       if chord[0] == '/':
          root = 'R'
       else:
@@ -61,6 +63,14 @@ def BreakDown(bar, beats):
                root += 'F'
             elif chord[1] == '#':
                root += 'S'
+            elif chord[1] == 'M':
+               foundquality = True
+               quality = 'major'
+               qualpos = 1
+            elif chord [1] == 'm' or chord [1] == '-':
+               foundquality = True
+               quality = 'minor'
+               qualpos = 1
       roots.append(root)
       durations.append(chord_duration)
    
