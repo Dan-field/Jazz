@@ -14,12 +14,34 @@
 from music import *
 
 class LeadSheet:
-   def __init__(self, filename='SatinDoll.txt', beats_per_bar=4):
+   def __init__(self, filename=None, beats_per_bar=None):
       """Initialises a LeadSheet object"""
+      if filename is None: filename = 'SatinDoll.txt'
+      if beats_per_bar is None: beats_per_bar = 4
       self.filename = filename
       self.beats_per_bar = beats_per_bar
+      self.current_bar = 0
+      self.current_beat = -1 # note the current usage increments the count on the first beat
+      self.total_bars = 0
       self.chords, self.bars = self.GetChords()
       self.root_pitches, self.root_durations = self.ExtractRoots(self.bars, self.beats_per_bar)
+      
+   def beatCrotchet(self):
+      if self.current_beat < self.beats_per_bar-1:
+         self.current_beat += 1
+      else:
+         self.current_bar += 1
+         self.current_beat = 0
+#      print "bar: "+str(self.current_bar+1)+" of "+str(self.total_bars)+", beat: "+str(self.current_beat+1)
+      
+   def getTotalBars(self):
+      return self.total_bars
+   
+   def getCurrentBar(self):
+      return self.current_bar
+   
+   def getCurrentBeat(self):
+      return self.current_beat
    
    def GetChords(self):
       with open(self.filename) as f:
@@ -49,6 +71,7 @@ class LeadSheet:
       for element in chords: # each element is a single chord or a barline
          if element == '|': # end of a bar
             bars.append(this_bar) # add existing bar to the list of bars
+            self.total_bars += 1 # add one to the total bar count
             this_bar = [] # start a fresh new bar
          else:
             this_bar.append(element) # add the chord to the current bar
@@ -57,10 +80,12 @@ class LeadSheet:
    def BreakDown(self, bar, beats):
       roots = []
       durations = []
+      qualities = []
       chord_duration = beats/len(bar) # because the mini-language requires bars to be evenly divided
       for chord in bar:
          # convert the standard chord notation into Jython notation
          # and extract the chord type
+         quality = ''
          foundquality = False
          if chord[0] == '/': # repeat the previous chord
             root = 'R'
@@ -70,10 +95,11 @@ class LeadSheet:
             if len(chord) > 1:
                if chord[1] == 'b':
                   root += 'F'
+                  # now remove the symbol to shorten the chord
+                  chord = chord[0] + chord[2:] # concatenate the first character with the 2nd+ characters
                elif chord[1] == '#':
                   root += 'S'
-               # now remove the symbol to shorten the chord
-               chord = chord[0] + chord[2:] # concatenate the first character with the 2nd+ characters
+                  chord = chord[0] + chord[2:]
             # now check for major/minor/dominant indications
             if len(chord) == 1:
                foundquality = True
@@ -94,6 +120,8 @@ class LeadSheet:
             
          roots.append(root)
          durations.append(chord_duration)
+         qualities.append(quality)
+#         print root, quality
       
       return(roots, durations)
    

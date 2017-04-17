@@ -23,13 +23,14 @@ def killTimer():
    global kill
    kill = True
    
-def tap():
+def tap(ls):
    global volume, tempo
-   Play.noteOn(42, volume, 9)
+   ls.beatCrotchet()
+   Play.noteOn(59, volume, 9)
    sleep(10.0/tempo)
-   Play.noteOff(42, 9)
+   Play.noteOff(59, 9)
 
-def startTimer(note_list, duration_list):
+def startTimer(ls):
 
    position = 0
    
@@ -54,21 +55,9 @@ def startTimer(note_list, duration_list):
    global kill
    # run the central counter
    while(kill == False):
-      tap()
-      sleep(60.0/tempo)
-      if len(note_list)-1 > position:
-         position += 1
+      if ls.getCurrentBar() < ls.getTotalBars():
+         tap(ls)
+         sleep(60.0/tempo)
       else:
          kill = True
    
-#      # add a bit of randomness to the volume
-#      thisvol = volume + randint(-12, 12)
-#      if thisvol > 127: thisvol = 127
-#      if thisvol < 0: thisvol = 0
-#      # play the next note in the list
-#      # randomise the held length slightly
-#      holdpercent = (85 + randint(0,15))/100.0
-#      Play.noteOn(note_list[position], thisvol, 0)
-#      sleep(60.0*duration_list[position]*holdpercent/tempo)
-#      Play.noteOff(note_list[position], 0)
-#      sleep(60.0*duration_list[position]*(1.0-holdpercent)/tempo)
