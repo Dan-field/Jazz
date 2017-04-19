@@ -26,6 +26,8 @@ def killTimer():
 def tap(ls):
    global volume, tempo
    ls.beatCrotchet()
+   if ls.getCurrentBeat() == 0:
+      print ls.getCurrentChord()
    Play.noteOn(59, volume, 9)
    sleep(10.0/tempo)
    Play.noteOff(59, 9)

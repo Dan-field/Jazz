@@ -24,7 +24,7 @@ class LeadSheet:
       self.current_beat = -1 # note the current usage increments the count on the first beat
       self.total_bars = 0
       self.chords, self.bars = self.GetChords()
-      self.root_pitches, self.root_durations = self.ExtractRoots(self.bars, self.beats_per_bar)
+      self.root_letters, self.root_pitches, self.root_durations, self.chord_qualities = self.ExtractRoots(self.bars, self.beats_per_bar)
       
    def beatCrotchet(self):
       if self.current_beat < self.beats_per_bar-1:
@@ -42,6 +42,13 @@ class LeadSheet:
    
    def getCurrentBeat(self):
       return self.current_beat
+   
+   def getChordOfBar(self, bar_number=None):
+      if bar_number is None: bar_number = 0
+      return self.root_letters[bar_number], self.chord_qualities[bar_number]
+   
+   def getCurrentChord(self):
+      return self.root_letters[self.current_bar], self.chord_qualities[self.current_bar]
    
    def GetChords(self):
       with open(self.filename) as f:
@@ -89,6 +96,7 @@ class LeadSheet:
          foundquality = False
          if chord[0] == '/': # repeat the previous chord
             root = 'R'
+            quality = 'R'
          else:
             root = chord[0]
             # check if it's a sharp or flat
@@ -121,9 +129,8 @@ class LeadSheet:
          roots.append(root)
          durations.append(chord_duration)
          qualities.append(quality)
-#         print root, quality
       
-      return(roots, durations)
+      return(roots, durations, qualities)
    
    def Octavify(self, roots, octave): # octave number as string, to make concatenation easier
       MIDI_nums = []
@@ -134,24 +141,33 @@ class LeadSheet:
       return(MIDI_nums)
    
    def ExtractRoots(self, bars, beats_per_bar):
-      roots = [] # initialise an empty list for the root notes
+      root_letters = []
+      roots_octavified = [] # initialise an empty list for the root notes
       durations = [] # initialise an empty list for the durations
+      qualities = [] # initialise an empty list for the chord qualities
       last_root = 'NC' # initialise the last root, which will be needed if there's a chord repeat symbol
+      last_quality = 'NC' # ditto for quality
       # Work through one bar at a time
       for bar_count, bar in enumerate(bars):
          # get the root notes and durations
-         roots_this_bar, durations_this_bar = self.BreakDown(bar, beats_per_bar)
+         roots_this_bar, durations_this_bar, qualities_this_bar = self.BreakDown(bar, beats_per_bar)
+         root_letters.append(roots_this_bar)
          if roots_this_bar[-1] != 'R': # the bar contains actual chords, not a 'repeat chord' symbol
             root_numbers = self.Octavify(roots_this_bar, '3') # pass the MIDI octave number as a string
             last_root = root_numbers
+            last_quality = qualities_this_bar
          else:
             root_numbers = last_root
-         roots.append(root_numbers)
+            qualities_this_bar = last_quality
+         roots_octavified.append(root_numbers)
          durations.append(durations_this_bar)
-      # the next two lines make 'flat' lists out of the lists of lists
-      roots_flat = [item for sublist in roots for item in sublist]
+         qualities.append(qualities_this_bar)
+      # the next lines make 'flat' lists out of the lists of lists
+      # note I do not want to make the root letters list flat: I want a list item per bar, not per chord (i.e. not flat)
+      roots_octavified_flat = [item for sublist in roots_octavified for item in sublist]
       durations_flat = [item for sublist in durations for item in sublist]
-      return roots_flat, durations_flat
+      qualities_flat = [item for sublist in qualities for item in sublist]
+      return root_letters, roots_octavified_flat, durations_flat, qualities
    
    def GetRoots(self):
       pitches, durations = self.root_pitches, self.root_durations

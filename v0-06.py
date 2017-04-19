@@ -1,5 +1,4 @@
 from timerfunction import *
-from music import *
 from LeadSheet import *
 
 # use the new LeadSheet class based on the chord chart file
