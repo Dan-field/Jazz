@@ -13,7 +13,7 @@ def setTempo(newTempo):
    global label1, tempo
    tempo = newTempo
    label1.setText("Tempo: "+str(newTempo)+" bpm")
-     
+   
 def setVolume(newVolume):
    global label2, volume
    volume = newVolume
@@ -23,16 +23,17 @@ def killTimer():
    global kill
    kill = True
    
-def tap(ls):
+def tap(ls, player):
    global volume, tempo
    ls.beatCrotchet()
+   player.beat(tempo)
    if ls.getCurrentBeat() == 0:
       print ls.getCurrentChord()
    Play.noteOn(59, volume, 9)
    sleep(10.0/tempo)
    Play.noteOff(59, 9)
 
-def startTimer(ls):
+def startTimer(ls, player):
 
    position = 0
    
@@ -58,7 +59,7 @@ def startTimer(ls):
    # run the central counter
    while(kill == False):
       if ls.getCurrentBar() < ls.getTotalBars():
-         tap(ls)
+         tap(ls, player)
          sleep(60.0/tempo)
       else:
          kill = True
