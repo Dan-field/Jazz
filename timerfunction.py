@@ -3,7 +3,7 @@ from music import *
 from gui import *
 from random import randint
 
-tempo = 175
+tempo = 120
 volume = 100
 label1 = Label("Tempo: "+str(tempo)+" bpm")
 label2 = Label("Vol: "+str(volume))
@@ -13,7 +13,7 @@ def setTempo(newTempo):
    global label1, tempo
    tempo = newTempo
    label1.setText("Tempo: "+str(newTempo)+" bpm")
-     
+   
 def setVolume(newVolume):
    global label2, volume
    volume = newVolume
@@ -22,8 +22,17 @@ def setVolume(newVolume):
 def killTimer():
    global kill
    kill = True
+   
+def tap(ls, player):
+   global volume, tempo
+   ls.beatCrotchet()
+   player.beat(tempo)
+   # print ls.getCurrentChordInfo()
+   Play.noteOn(59, volume, 9)
+   sleep(10.0/tempo)
+   Play.noteOff(59, 9)
 
-def startTimer(note_list, duration_list):
+def startTimer(ls, player):
 
    position = 0
    
@@ -46,20 +55,11 @@ def startTimer(note_list, duration_list):
    d.add(button1, 40, 210)
    
    global kill
+   # run the central counter
    while(kill == False):
-      # add a bit of randomness to the volume
-      thisvol = volume + randint(-12, 12)
-      if thisvol > 127: thisvol = 127
-      if thisvol < 0: thisvol = 0
-      # play the next note in the list
-      # randomise the held length slightly
-      holdpercent = (85 + randint(0,15))/100.0
-      Play.noteOn(note_list[position], thisvol, 0)
-      sleep(60.0*duration_list[position]*holdpercent/tempo)
-      Play.noteOff(note_list[position], 0)
-      sleep(60.0*duration_list[position]*(1.0-holdpercent)/tempo)
-      if len(note_list)-1 > position:
-         position += 1
+      if ls.ended ==  False:
+         tap(ls, player)
+         sleep(60.0/tempo)
       else:
          kill = True
    
