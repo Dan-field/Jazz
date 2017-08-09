@@ -10,18 +10,23 @@ from music import *
 from Analysis import *
 from ScaleTheory import *
 from random import *
+from gui import *
 
 class ChordWatcher:
    def __init__(self, ls=None):
       """Initialises a RandomPlayer object"""
-      self.range_top = 81 # the A above middle C
-      self.range_bottom = 50 # the A below middle C
+      self.range_top = 88 # 81 = the A above middle C
+      self.range_bottom = 64 # 50 = the A below middle C
       self.target_step = 2.0 # this can be varied - will affect the note choice
       self.near_top = False
       self.near_bottom = False
       self.leadSheet = ls
       self.key, self.key_qual, self.chord, self.chord_qual, self.degrees = ls.getFirstChordInfo()
-      self.phr = Phrase()
+      self.improv = Phrase(0.0)
+      self.bass = Phrase(0.0)
+      self.chord3 = Phrase(0.0)
+      self.chord7 = Phrase(0.0)
+      self.music = Part()
       self.thisBeatRhythm = [0.5, 0.5]
       self.thisBeatNotes = [56, 57]
       self.thisBeatVelocities = [100, 100]
@@ -31,6 +36,16 @@ class ChordWatcher:
       self.nextBeatScale = []
       self.nextBeat37 = []
       self.theory = ScaleTheory()
+      # GUI
+      self.label1 = Label("Step Size: "+str(int(self.target_step*10)))
+      self.d = Display("Player Parameters", 270, 240, 10, 10, Color.WHITE)
+      self.slider1 = Slider(HORIZONTAL, 0, 100, int(self.target_step*10), self.setStep)
+      self.d.add(self.label1, 40, 30)
+      self.d.add(self.slider1, 40, 60)
+
+   def setStep(self, newStep):
+      self.target_step = float(newStep)/10.0
+      self.label1.setText("Step Size: "+str(newStep))
 
    def rangeLimit(self, full_series):
       return_values = []
@@ -41,13 +56,13 @@ class ChordWatcher:
       
    def playCurrentBeat(self, tempo=None):
       if tempo is None: tempo = 120
-      self.phr.setTempo(tempo)
-      Play.midi(self.phr)
+      self.music.setTempo(tempo)
+      Play.midi(self.music)
    
    def teeUpNextBeat(self):
       nextBar = self.leadSheet.getNextBarChords()
       no_of_chords = len(nextBar)
-      a = 0.4 #random()
+      a = 0.61 #random()
       b = 1.0 - a
       c, d = self.pickNextBeatNotes()
       e = 100 + randint(-25, 25)
@@ -56,11 +71,19 @@ class ChordWatcher:
       self.nextBeatRhythm = [a, b]
       self.nextBeatNotes = [c, d]
       self.nextBeatVelocities = [e, f]
-      self.phr.empty()
+      self.improv.empty()
+      self.bass.empty()
+      self.music.empty()
       self.thisBeatRhythm = self.nextBeatRhythm
       self.thisBeatNotes = self.nextBeatNotes
       self.thisBeatVelocities = self.nextBeatVelocities
-      self.phr.addNoteList(self.thisBeatNotes, self.thisBeatRhythm, self.thisBeatVelocities)
+      self.bass.addNote(self.theory.noteToLowMIDI(self.chord)+36, 1.0)
+      self.bass.setDynamic(120)
+      self.improv.addNoteList(self.thisBeatNotes, self.thisBeatRhythm, self.thisBeatVelocities)
+      self.music.addPhrase(self.bass)
+      self.music.addPhrase(self.chord3)
+      self.music.addPhrase(self.chord7)
+      self.music.addPhrase(self.improv)
 
    def pickNextBeatNotes(self):
       nextKey, nextKey_qual, nextChord, nextChord_qual, nextDegrees = self.leadSheet.getNextBeatChordInfo()
@@ -81,6 +104,11 @@ class ChordWatcher:
             self.chord_qual = nextChord_qual
             self.degrees = nextDegrees
             self.nextBeatScale, self.nextBeat37 = self.theory.constructScale(self.key, self.key_qual, self.chord, self.chord_qual, self.degrees, 'new')
+            self.chord3.empty()
+            self.chord7.empty()
+            note_a, note_b = self.getHarmonic37()
+            self.chord3.addNote(note_a, 1.0)
+            self.chord7.addNote(note_b, 1.0)
             self.nextBeatScale = self.rangeLimit(self.nextBeatScale)
             self.nextBeat37 = self.rangeLimit(self.nextBeat37)
             chord_change = True
@@ -142,6 +170,17 @@ class ChordWatcher:
          closest = differences.index(min(differences))
          second_note = self.nextBeatScale[closest]
          return first_note, second_note
+      
+   def getHarmonic37(self):
+      # assume that self.nextBeat37 contains a full list of 3's and 7's
+      # now find the closest two to the target area
+      target_area = 55
+      differences = [abs(target_area - note) for note in self.nextBeat37]
+      # find the closest, and select it as the first note
+      closest = differences.index(min(differences))
+      desired_note = self.nextBeat37[closest]
+      next_desired_note = self.nextBeat37[closest+1]
+      return desired_note, next_desired_note
 
 
    def beat(self, tempo=None):

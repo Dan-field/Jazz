@@ -24,19 +24,15 @@ def killTimer():
    kill = True
    
 def tap(ls, player):
-   global volume, tempo
+   global tempo
    ls.beatCrotchet()
    player.beat(tempo)
-   # print ls.getCurrentChordInfo()
-   Play.noteOn(59, volume, 9)
-   sleep(10.0/tempo)
-   Play.noteOff(59, 9)
 
 def startTimer(ls, player):
 
    position = 0
    
-   d = Display("tap", 270, 240)
+   d = Display("tap", 270, 240, 290, 10, Color.WHITE)
    minTempo = 45
    maxTempo = 290
    startTempo = tempo
@@ -50,8 +46,8 @@ def startTimer(ls, player):
       
    d.add(label1, 40, 30)
    d.add(slider1, 40, 60)
-   d.add(label2, 40, 120)
-   d.add(slider2, 40, 150)
+   #d.add(label2, 40, 120)
+   #d.add(slider2, 40, 150)
    d.add(button1, 40, 210)
    
    global kill
