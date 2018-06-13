@@ -18,12 +18,14 @@ class Motif:
       """Initialises a Motif object"""
       # any initialisation variables go here
 
-   def generateNew(self, number_of_notes, range_in_semitones, shape=None):
+   def generateNew(self, number_of_notes, range_in_semitones, starting_offset, shape=None):
       # shape is a number 1-6 as follows:
       # 1 = rising
-      # 2 = falling
-      # 3 = rising then falling
-      # 4 = falling then rising
+      # 2 = falling (inverse of #1)
+      # 3 = rising then falling back
+      # 4 = inverse of #3
+      # 5 = rising then falling back half way
+      # 6 = inverse of #5
       if shape is None:
          shape = randint(1, 6)
       empty_motif = range(number_of_notes)
@@ -49,6 +51,8 @@ class Motif:
       if shape == 2 or shape == 4 or shape == 6: # we require the negative
          neg_motif = [-a for a in motif]
          motif = neg_motif
+      shifted_motif = [a+starting_offset for a in motif]
+      motif = shifted_motif
       return motif
 
    def invert(self, motif):
@@ -79,5 +83,28 @@ class Motif:
          extended_motif.append(last_note - choice(range(upstep)))
       extended_motif.append(last_note + upstep)
       return extended_motif
+
+   def generateRhythms(self, number_of_notes): # initially, only three rhythms available (3 notes over 2 beats)
+      weights = [1.0, 1.0, 0.5]
+      choice = self.weighted_choice(weights)
+      if choice == 0:
+         return [4, 2, 2]
+      elif choice == 1:
+         return [2, 2, 4]
+      elif choice == 2:
+         return [2, 4, 2]
+
+   def weighted_choice(self, weights):
+      # thanks to Eli Benderski's Website
+      totals = []
+      running_total = 0
+
+      for w in weights:
+         running_total += w
+         totals.append(running_total)
+      rnd = random() * running_total
+      for i, total in enumerate(totals):
+         if rnd < total:
+            return i
 
 
