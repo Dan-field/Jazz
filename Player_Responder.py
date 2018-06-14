@@ -170,7 +170,7 @@ class RespondPlayer:
       pick = self.NP.pickNote(note, function, self.chordscale)
       if self.isMuted is True:
          velocity = 0
-      self.sender.sendNoteEvent(pick, velocity, 0, self.botName)
+      self.sender.sendNoteEvent(pick, velocity, None, self.botName)
       if self.isLooping is True:
          self.otherBotSequence[self.arrayPosition] = note
       self.lastNote = pick

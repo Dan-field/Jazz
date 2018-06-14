@@ -38,7 +38,7 @@ class Timekeeper:
       self.adjusted_16count = self.tempo*4
       self.latency = -110 # auto latency in milliseconds
       self.latency_adjustment = -10 # manual
-      self.tempo_adjustment = 0 
+      self.tempo_adjustment = -20 
       self.kill = False
       self.TapTime_Internal = 0.0
       self.TapTime_Int_previous = 0.0
@@ -61,7 +61,7 @@ class Timekeeper:
       self.label3 = Label("Manual Latency: "+str(int(self.latency_adjustment))+"        ")
       self.label5 = Label("Muting Threshold: "+str(self.muteThresh)+"  ms  ")
       self.slider1 = Slider(HORIZONTAL, self.minTempo, self.maxTempo, self.tempo, self.setTempo)
-      self.slider2 = Slider(HORIZONTAL, -100, 100, self.tempo_adjustment, self.setTempoAdjustment)
+      self.slider2 = Slider(HORIZONTAL, -150, 100, self.tempo_adjustment, self.setTempoAdjustment)
       self.slider3 = Slider(HORIZONTAL, -100, 100, self.latency_adjustment, self.setManualLatency)
       self.slider4 = Slider(HORIZONTAL, 0, 200, self.muteThresh, self.setMuteThresh)
       self.checkbox1 = Checkbox("External Timesource", self.setExtTimeSrc)
@@ -100,6 +100,7 @@ class Timekeeper:
    def setTempo(self, newTempo):
       self.tempo = int(newTempo)
       self.label1.setText("Tempo: "+str(int(newTempo))+" bpm  ")
+      self.Player.sender.sendTempo(newTempo)
       if self.timesource_is_external is False: # we want to adjust the tempo manually
          self.adjusted_16count = self.tempo*4
          self.setLatency(int(0.5*(0.65*self.tempo) - 230))
@@ -189,7 +190,7 @@ class Timekeeper:
             self.endofBar = True
          if self.count16 != 0 and self.endofBar is False:
             self.tap(64)
-         reference = 60000.0+(60.0*self.tempo_adjustment) # tempo_adjustment is between -100 and +100
+         reference = 60000.0+(60.0*self.tempo_adjustment) # tempo_adjustment is between -150 and +100
          required_delay = int(reference/self.adjusted_16count)
          #if self.count16 == 0:
          #   required_delay += (self.latency+self.latency_adjustment)

@@ -21,20 +21,25 @@ class NoteSender:
       self.oscOutPrivate = OscOut("localhost", 9000) #("192.168.1.7", 33334)
 
       self.lastPitch = 0
+      self.tempo = 120
 
       self.MM = MidiOut()
 
-   def sendNoteEvent(self, MIDI_No, Vel=None, Zip=None, botName=None):
+   def sendNoteEvent(self, MIDI_No, Vel=None, Note_length=None, botName=None, delay=None):
       if Vel is None:
-         Vel = 65
+         Vel = 45
+      if Note_length is None:
+         Note_length = 0.9
       if botName is None:
          botName = "DF_monophonic-note-sender_bot"
-      if Zip is None:
-         Zip = 0
-      #self.oscOutPrivate.sendMessage(botName, int(self.lastPitch), 0) #note off
-      #self.oscOutPrivate.sendMessage(botName, int(MIDI_No), int(Vel), int(Zip))
+      if delay is None:
+         delay = 0.0
+      duration = int(15000*Note_length/self.tempo)
+      if delay != 0.0:
+         delay = 15000*delay/self.tempo
+      delay = int(delay)
       if Vel != 0 and MIDI_No > 10:
-         self.MM.note(MIDI_No, 0, 220, Vel, 5, 64)
+         self.MM.note(MIDI_No, delay, duration, Vel, 0, 64)
          self.oscOutPublic.sendMessage("/event/note", botName, int(MIDI_No))
       self.lastPitch = MIDI_No
 
@@ -46,3 +51,6 @@ class NoteSender:
 
    def allNotesOff(self):
       self.MM.allNotesOff()
+
+   def sendTempo(self, newTempo):
+      self.tempo = newTempo

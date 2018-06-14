@@ -5,7 +5,7 @@
 from threading import Thread
 from Timekeeper import *
 from OSCinput import *
-from Player_Motif_v3 import *
+from Player_Motif_and_Solo import *
 
 kill = False
 elapsed = 0.0
