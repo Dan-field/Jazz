@@ -120,18 +120,17 @@ class MotifPlayer:
 
       formB_pitches = [self.MM.generateNew(4, 7, 71, 2), self.MM.generateNew(4, 7, 68, 2), self.MM.generateNew(7, 5, 64, 3)]
       self.formB1_pitches = [item for sublist in formB_pitches for item in sublist]
-      self.formB1_durations = [2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 2, 1, 8]
+      self.formB1_durations = [2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 2, 8]
       self.formB1_functions = ["C", "X", "S", "X", "C", "X", "C", "A", "C", "C", "A", "C", "C", "L", "C"]
       self.formB1_velocities = [-5, -5, -5, -5, 0, 0, 0, 0, 5, 0, -5, -10, -10, -15, -10]
-      self.formB1_note_lengths = [2.05, 2.05, 2.05, 2.05, 2.05, 2.05, 2.05, 2.05, 1.55, 1.55, 1.05, 1.55, 1.55, 1.05, 4.0]
-      self.formB1_delays = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0]
+      self.formB1_note_lengths = [2.05, 2.05, 2.05, 2.05, 2.05, 2.05, 2.05, 2.05, 1.3, 1.3, 1.1, 1.3, 1.2, 1.05, 4.0]
+      self.formB1_delays = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.333, 0.667, 0.0, 0.333, 0.667, 0.0]
       self.formB2_pitches = [i+2 for i in self.formB1_pitches]
-      self.formB2_durations = [2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 2, 1, 8]
+      self.formB2_durations = [2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 2, 8]
       self.formB2_functions = ["C", "X", "S", "X", "C", "X", "C", "A", "C", "C", "A", "C", "C", "L", "A"]
       self.formB2_velocities = [5, 5, 5, 5, 0, 0, 0, 0, 5, 0, 5, 10, 10, 15, 10]
-      self.formB2_note_lengths = [2.0, 2.0, 2.0, 2.0, 1.95, 1.95, 1.95, 1.8, 1.45, 1.4, 1.0, 1.55, 1.3, 1.05, 7.0]
-      self.formB2_delays = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0]
-     
+      self.formB2_note_lengths = [2.0, 2.0, 2.0, 2.0, 1.95, 1.95, 1.95, 1.8, 1.33, 1.33, 1.33, 1.33, 1.33, 1.33, 7.0]
+      self.formB2_delays = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.333, 0.667, 0.0, 0.333, 0.667, 0.0]
 
    def startSoloing(self):
       self.isSoloing = True
@@ -174,7 +173,7 @@ class MotifPlayer:
          self.motif.append(element)
       for element in self.MM.generateRhythms(3):
          self.motif_rhythm.append(element)
-      self.motif_function.append("L")
+      self.motif_function.append("C")
       self.motif_function.append("C")
       self.motif_function.append("C")
 
@@ -190,7 +189,7 @@ class MotifPlayer:
          self.position_count = 0
          self.hold = 0
          self.started = True
-         velocity = 85
+         velocity = self.base_velocity+randint(1, 11)
          self.allNotesOff()
       if self.started is True and self.hold == 0:
          if self.isSoloing is False:
@@ -200,14 +199,16 @@ class MotifPlayer:
             note_length = 0.85
             delay = 0.0
             if count != 0:
-               velocity = self.base_velocity
+               velocity = self.base_velocity+randint(-5, 5)
             self.position_count += 1
             if self.position_count > (len(self.motif)-1):
                self.position_count = 0
+               self.motif = self.MM.jitter(self.motif, 3)
          elif self.isSoloing is True:
             note = self.current_form_pitches[self.solo_form_index]
+            note = (note-64)*2+64
             duration = self.current_form_durations[self.solo_form_index]
-            function = self.current_form_functions[self.solo_form_index]
+            function =  "C" #self.current_form_functions[self.solo_form_index]
             velocity = self.base_velocity+self.current_form_velocities[self.solo_form_index]
             if velocity > 127:
                velocity = 127

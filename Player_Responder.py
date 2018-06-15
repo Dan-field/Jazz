@@ -204,7 +204,6 @@ class RespondPlayer:
 
    def tap16th(self):
       self.arrayPosition += 1
-      print self.otherBotSequence
       if self.arrayPosition > len(self.otherBotSequence)-1:
          self.arrayPosition = 0
          self.counter += 1

@@ -38,10 +38,10 @@ class NoteSender:
       if delay != 0.0:
          delay = 15000*delay/self.tempo
       delay = int(delay)
-      if Vel != 0 and MIDI_No > 10:
+      if Vel != 0 and MIDI_No > 10 and MIDI_No < 120:
          self.MM.note(MIDI_No, delay, duration, Vel, 0, 64)
          self.oscOutPublic.sendMessage("/event/note", botName, int(MIDI_No))
-      self.lastPitch = MIDI_No
+         self.lastPitch = MIDI_No
 
    def sendAlive(self, botName):
       self.oscOutPublic.sendMessage("/activity/alive", botName)
