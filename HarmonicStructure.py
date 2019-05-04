@@ -20,7 +20,14 @@ class HarmonicStructure:
    def __init__(self, textFile=None):
       """Initialises a HarmonicStructure object"""
       # set up the class variables
+      self.UL = None # placeholder for Urline reference
+      self.PP = None # placeholder for Player reference
       self.defaultBeatsPerBar = 4 # used if the text file has no timesig
+      self.ticksPerBar = 48
+      self.thisTick = 0
+      self.thisBeat = 0
+      self.thisBar = 0
+      self.tickTimer = Timer(0, self.TickInternal, [], False)
       self.chordBases = [] # for the chord base's MIDI number
       self.chordTypes = [] # to be one of 'Maj', 'min', 'Dom', 'dim', 'mb5' (note: mb5 is 'half diminished')
       self.chordExtns = [] # any leftover information from the chord symbol
@@ -32,6 +39,12 @@ class HarmonicStructure:
       self.keyTypes0 = [] # 'Maj' or 'min' for the key read from the text file
       self.keyTypes1 = [] # 'Maj' or 'min' for options 1 and 2
       self.keyTypes2 = [] # 'Maj' or 'min' for options 3 and 4
+      self.I_singleKey = [] # locations of 'I' chords in the analysed single key
+      self.keyBaseManual = -1
+      self.keyTypeManual = ""
+      self.thisKeyBase = -1
+      self.thisKeyType = ""
+      self.keyMode = 0 # 0 = no key, 1 = manual, 2 = from file, 3 = analysis0, 4 = analysis1, 5 = analysis2, 6 = analysis3
       # set up the array of scale choices for major and minor keys: top level lists correspond to the root positions 0-11
       # second level lists correspond to the five basic chord types in the order Maj, min, Dim, dom, mb5
       # bottom level is 'old school', 'new school'
@@ -56,21 +69,30 @@ class HarmonicStructure:
       [['', ''],['', ''],['', ''],['diminished2', 'melodic7'],['', '']],\
       [['', ''],['dorian', 'melodic4'],['', ''],['diminished', 'diminished2'],['', '']],\
       [['', ''],['', ''],['', ''],['diminished', 'melodic7'],['', '']],\
-      [['', ''],['aeolian', ''],['', 'melodic5'],['diminished2', 'diminished2'],['', '']],\
+      [['', ''],['aeolian', ''],['mixolydian', 'melodic5'],['diminished2', 'diminished2'],['', '']],\
       [['lydian', 'melodic6'],['', ''],['', ''],['diminished', 'diminished2'],['', '']],\
       [['', ''],['phrygian', ''],['', ''],['diminished', 'diminished'],['locrian', '']],\
       [['ionian', ''],['', ''],['mixolydian', ''],['diminished2', 'diminished2'],['', '']],\
       [['', ''],['', ''],['', ''],['diminished', 'melodic7'],['', '']]]
       # initialise the GUI
-      self.d = Display("Harmonic Structure", 270, 240, 10, 10, Color.WHITE)
-      self.label01 = Label("key mode:"); self.label01.setFont(Font("Verdana",Font.BOLD,20))
+      self.d = Display("Harmonic Structure", 800, 240, 10, 10, Color.WHITE)
+      self.label01 = Label("key:                "); self.label01.setFont(Font("Verdana",Font.BOLD,20))
       self.label02 = Label("no key"); self.label02.setFont(Font("Verdana",Font.PLAIN,16))
       self.label03 = Label("manual entry"); self.label03.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label04 = Label("from file"); self.label04.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label05 = Label("assessed - single"); self.label05.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label06 = Label("assessed - with iiV's"); self.label06.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label07 = Label("assessed - with iiVI's"); self.label07.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label08 = Label("assessed - with both"); self.label08.setFont(Font("Verdana",Font.PLAIN,16))
+      self.label04 = Label("read from file"); self.label04.setFont(Font("Verdana",Font.PLAIN,16))
+      self.label05 = Label("analysed from file"); self.label05.setFont(Font("Verdana",Font.PLAIN,16))
+      self.label06 = Label("with ii-V mods"); self.label06.setFont(Font("Verdana",Font.PLAIN,16))
+      self.label07 = Label("with ii-V-I mods"); self.label07.setFont(Font("Verdana",Font.PLAIN,16))
+      self.label08 = Label("with all mods"); self.label08.setFont(Font("Verdana",Font.PLAIN,16))
+      self.label13 = Label("           "); self.label13.setFont(Font("Verdana",Font.PLAIN,16)); self.label13.setForegroundColor(Color.BLUE)
+      self.label14 = Label("           "); self.label14.setFont(Font("Verdana",Font.PLAIN,16)); self.label14.setForegroundColor(Color.BLUE)
+      self.label15 = Label("           "); self.label15.setFont(Font("Verdana",Font.PLAIN,16)); self.label15.setForegroundColor(Color.BLUE)
+      self.label16 = Label("           "); self.label16.setFont(Font("Verdana",Font.PLAIN,16)); self.label16.setForegroundColor(Color.BLUE)
+      self.label17 = Label("           "); self.label17.setFont(Font("Verdana",Font.PLAIN,16)); self.label17.setForegroundColor(Color.BLUE)
+      self.label18 = Label("           "); self.label18.setFont(Font("Verdana",Font.PLAIN,16)); self.label18.setForegroundColor(Color.BLUE)
+      self.label41 = Label("chord:                       "); self.label41.setFont(Font("Verdana",Font.BOLD,20))
+      self.label71 = Label("beat:       bar:      "); self.label71.setFont(Font("Verdana",Font.BOLD,20))
+      self.tf01 = TextField("", 5, self.ManualKeyEntered)
       self.toggle02 = Toggle(0,0,20,20,True,self.Toggle02,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
       self.toggle03 = Toggle(0,0,20,20,False,self.Toggle03,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
       self.toggle04 = Toggle(0,0,20,20,False,self.Toggle04,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
@@ -80,6 +102,7 @@ class HarmonicStructure:
       self.toggle08 = Toggle(0,0,20,20,False,self.Toggle08,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
       if textFile is not None:
          self.InitiateWithTextFile(textFile)
+         self.BeatsToNextI()
          self.StartGUI()
       else:
          print "No text file specified for HarmonicStructure.\n"
@@ -87,6 +110,104 @@ class HarmonicStructure:
          for s in range(len(self.chordBases[b])):
             break
             print self.selectScale(self.keyBases1[b][s], self.keyTypes1[b][s], self.chordBases[b][s], self.chordTypes[b][s], self.chordExtns[b][s], 'old')
+
+   # ------------------------------------------------------------------------------------
+   #                         Functions for Information Passing
+   # ------------------------------------------------------------------------------------
+   def setUrlinieReference(self, reference):
+      self.UL = reference
+
+   def setPlayerReference(self, reference):
+      self.PP = reference
+
+   def sendScale(self):
+      if self.PP is not None:
+         b = self.thisBar
+         n = self.thisBeat
+         self.PP.setScale(self.getScale(self.selectScale(self.keyBases1[b][n], self.keyTypes1[b][n], self.chordBases[b][n], self.chordTypes[b][n])), self.chordBases[b][n])
+
+   def PrintKeys(self):
+      # test function: print out the 'keyBases3' list in the terminal window
+      print self.keyBases3
+      print self.keyBases4
+
+   def PrintChords(self):
+      # print out the 'chordBases' list in the terminal window
+      print self.chordBases
+      print self.chordTypes
+
+   def BeatsToNextI(self):
+      # work out how many beats there are until the next I - returns 0 if currently at a I
+      # set up local variables
+      b = self.thisBar # 'b' for 'bar'
+      n = self.thisBeat # 'n' for 'note'
+      b_answer = 0
+      n_answer = 0
+      found = False
+      current_I = self.I_singleKey[b][n]
+      if current_I is False: # we're not currently at I
+         while b < len(self.I_singleKey): # go through the bars, starting at the current bar
+            while n < len(self.I_singleKey[b]): # go through the beats, starting at the current beat
+               if self.I_singleKey[b][n] is True: # the indexed bar & beat has been identified as a I
+                  b_answer = b-self.thisBar-1 # how many more bars on from this one
+                  n_answer = n # beat position in the bar
+                  found = True
+               if found is True:
+                  break
+               n += 1
+            if found is True:
+               break
+            n = 0
+            b += 1
+      return n_answer+(len(self.chordBases[0])*b_answer)
+
+   def BeatsPerBar(self):
+      return len(self.chordBases[0])
+
+   def RootOfNextI(self):
+      b = self.thisBar # 'b' for 'bar'
+      n = self.thisBeat # 'n' for 'note'
+      answer = -1
+      found = False
+      current_I = self.I_singleKey[b][n]
+      if current_I is False: # we're not currently at I
+         while b < len(self.I_singleKey): # go through the bars, starting at the current bar
+            while n < len(self.I_singleKey[b]): # go through the beats, starting at the current beat
+               if self.I_singleKey[b][n] is True: # the indexed bar & beat has been identified as a I
+                  answer = self.keyBases1[b][n]
+                  found = True
+               if found is True:
+                  break
+               n += 1
+            if found is True:
+               break
+            n = 0
+            b += 1
+      return answer
+
+   def RootAndTypeOfNextI(self):
+      b = self.thisBar # 'b' for 'bar'
+      n = self.thisBeat # 'n' for 'note'
+      root = -1
+      kind = ""
+      found = False
+      current_I = self.I_singleKey[b][n]
+      if current_I is False: # we're not currently at I
+         while b < len(self.I_singleKey): # go through the bars, starting at the current bar
+            while n < len(self.I_singleKey[b]): # go through the beats, starting at the current beat
+               if self.I_singleKey[b][n] is True: # the indexed bar & beat has been identified as a I
+                  root = self.keyBases1[b][n]
+                  kind = self.keyTypes1[b][n]
+                  found = True
+               if found is True:
+                  break
+               n += 1
+            if found is True:
+               break
+            n = 0
+            b += 1
+      return root, kind
+
 
    # ------------------------------------------------------------------------------------
    #                                       GUI
@@ -100,6 +221,15 @@ class HarmonicStructure:
       self.d.add(self.label06, 50, 120)
       self.d.add(self.label07, 50, 140)
       self.d.add(self.label08, 50, 160)
+      self.d.add(self.label13, 230, 60)
+      self.d.add(self.label14, 230, 80)
+      self.d.add(self.label15, 230, 100)
+      self.d.add(self.label16, 230, 120)
+      self.d.add(self.label17, 230, 140)
+      self.d.add(self.label18, 230, 160)
+      self.d.add(self.label41, 230, 6)
+      self.d.add(self.label71, 570, 6)
+      self.d.add(self.tf01, 170, 60)
       self.d.add(self.toggle02, 20, 40)
       self.d.add(self.toggle03, 20, 60)
       self.d.add(self.toggle04, 20, 80)
@@ -107,6 +237,19 @@ class HarmonicStructure:
       self.d.add(self.toggle06, 20, 120)
       self.d.add(self.toggle07, 20, 140)
       self.d.add(self.toggle08, 20, 160)
+      self.label13.setText(self.MIDItoNoteName(self.keyBaseManual)+" "+self.keyTypeManual)
+      self.label14.setText(self.MIDItoNoteName(self.keyBases0[self.thisBar][self.thisBeat])+" "+self.keyTypes0[self.thisBar][self.thisBeat])
+      self.label15.setText(self.MIDItoNoteName(self.keyBases1[self.thisBar][self.thisBeat])+" "+self.keyTypes1[self.thisBar][self.thisBeat])
+      self.label16.setText(self.MIDItoNoteName(self.keyBases2[self.thisBar][self.thisBeat])+" "+self.keyTypes1[self.thisBar][self.thisBeat])
+      self.label17.setText(self.MIDItoNoteName(self.keyBases3[self.thisBar][self.thisBeat])+" "+self.keyTypes2[self.thisBar][self.thisBeat])
+      self.label18.setText(self.MIDItoNoteName(self.keyBases4[self.thisBar][self.thisBeat])+" "+self.keyTypes2[self.thisBar][self.thisBeat])
+      self.label41.setText("chord: "+self.MIDItoNoteName(self.chordBases[0][0])+" "+self.chordTypes[0][0]+" "+self.chordExtns[0][0])
+   def ManualKeyEntered(self, key): # the user has entered something in the manual key box and pressed enter
+      root, kind, c = self.BreakDownChordSymbol(key)
+      if kind in ['Maj', 'min']:
+         self.keyBaseManual = self.NoteNameToMIDI(root)
+         self.keyTypeManual = kind
+         self.label13.setText(self.MIDItoNoteName(self.keyBaseManual)+" "+self.keyTypeManual)
    def Toggle02(self, newState): # 'no key' has been toggled
       if newState == True:
          self.toggle08.setValue(False)
@@ -115,6 +258,7 @@ class HarmonicStructure:
          self.toggle05.setValue(False)
          self.toggle04.setValue(False)
          self.toggle03.setValue(False)
+         self.keyMode = 0
       else:
          if self.toggle03.getValue() is False and self.toggle04.getValue() is False and\
          self.toggle05.getValue() is False and self.toggle06.getValue() is False and\
@@ -128,6 +272,7 @@ class HarmonicStructure:
          self.toggle05.setValue(False)
          self.toggle04.setValue(False)
          self.toggle02.setValue(False)
+         self.keyMode = 1
       else:
          if self.toggle02.getValue() is False and self.toggle04.getValue() is False and\
          self.toggle05.getValue() is False and self.toggle06.getValue() is False and\
@@ -141,6 +286,7 @@ class HarmonicStructure:
          self.toggle05.setValue(False)
          self.toggle03.setValue(False)
          self.toggle02.setValue(False)
+         self.keyMode = 2
       else:
          if self.toggle02.getValue() is False and self.toggle03.getValue() is False and\
          self.toggle05.getValue() is False and self.toggle06.getValue() is False and\
@@ -154,6 +300,7 @@ class HarmonicStructure:
          self.toggle06.setValue(False)
          self.toggle07.setValue(False)
          self.toggle08.setValue(False)
+         self.keyMode = 3
       else:
          if self.toggle02.getValue() is False and self.toggle03.getValue() is False and\
          self.toggle04.getValue() is False and self.toggle06.getValue() is False and\
@@ -161,59 +308,45 @@ class HarmonicStructure:
             self.toggle02.setValue(True)
    def Toggle06(self, newState): # 'analysis - with ii-V modulations' has been toggled
       if newState == True:
-         if self.toggle07.getValue() is True:
-            self.toggle08.setValue(True)
-            self.toggle05.setValue(False)
-            self.toggle04.setValue(False)
-            self.toggle03.setValue(False)
-            self.toggle02.setValue(False)
-         else:
-            self.toggle08.setValue(False)
-            self.toggle05.setValue(False)
-            self.toggle04.setValue(False)
-            self.toggle03.setValue(False)
-            self.toggle02.setValue(False)
+         self.toggle02.setValue(False)
+         self.toggle03.setValue(False)
+         self.toggle04.setValue(False)
+         self.toggle05.setValue(False)
+         self.toggle07.setValue(False)
+         self.toggle08.setValue(False)
+         self.keyMode = 4
       else:
          if self.toggle02.getValue() is False and self.toggle03.getValue() is False and\
          self.toggle04.getValue() is False and self.toggle05.getValue() is False and\
          self.toggle07.getValue() is False and self.toggle08.getValue() is False:
             self.toggle02.setValue(True)
-         elif self.toggle07.getValue() is True:
-            self.toggle08.setValue(False)
    def Toggle07(self, newState): # 'analysis - with ii-V-I modulations' has been toggled
       if newState == True:
-         if self.toggle06.getValue() is True:
-            self.toggle08.setValue(True)
-            self.toggle05.setValue(False)
-            self.toggle04.setValue(False)
-            self.toggle03.setValue(False)
-            self.toggle02.setValue(False)
-         else:
-            self.toggle08.setValue(False)
-            self.toggle05.setValue(False)
-            self.toggle04.setValue(False)
-            self.toggle03.setValue(False)
-            self.toggle02.setValue(False)
+         self.toggle02.setValue(False)
+         self.toggle03.setValue(False)
+         self.toggle04.setValue(False)
+         self.toggle05.setValue(False)
+         self.toggle06.setValue(False)
+         self.toggle08.setValue(False)
+         self.keyMode = 5
       else:
          if self.toggle02.getValue() is False and self.toggle03.getValue() is False and\
          self.toggle04.getValue() is False and self.toggle05.getValue() is False and\
          self.toggle06.getValue() is False and self.toggle08.getValue() is False:
             self.toggle02.setValue(True)
-         elif self.toggle06.getValue() is True:
-            self.toggle08.setValue(False)
    def Toggle08(self, newState): # 'analysis - with ii-V and ii-V-I modulations' has been toggled
       if newState == True:
-         if self.toggle07.getValue() is False or self.toggle06.getValue() is False:
-            if self.toggle07.getValue() is False:
-               self.toggle07.setValue(True)
-            if self.toggle06.getValue() is False:
-               self.toggle06.setValue(True)
+         self.toggle02.setValue(False)
+         self.toggle03.setValue(False)
+         self.toggle04.setValue(False)
+         self.toggle05.setValue(False)
+         self.toggle06.setValue(False)
+         self.toggle07.setValue(False)
+         self.keyMode = 6
       else:
-         if self.toggle06.getValue() is True and self.toggle07.getValue() is True:
-            self.toggle08.setValue(True)
-         elif self.toggle03.getValue() is False and self.toggle04.getValue() is False and\
-         self.toggle05.getValue() is False and self.toggle06.getValue() is False and\
-         self.toggle07.getValue() is False and self.toggle08.getValue() is False:
+         if self.toggle02.getValue() is False and self.toggle03.getValue() is False and\
+         self.toggle04.getValue() is False and self.toggle05.getValue() is False and\
+         self.toggle06.getValue() is False and self.toggle07.getValue() is False:
             self.toggle02.setValue(True)
 
    # ------------------------------------------------------------------------------------
@@ -244,12 +377,15 @@ class HarmonicStructure:
                if foundKeyInFile:
                   Bd.append(keyBase_from_file)
                   Be.append(keyType_from_file)
+               else:
+                  Bd.append(-1)
+                  Be.append("")
             self.chordBases.append(Ba) # put the one-bar list into the overall list
             self.chordTypes.append(Bb)
             self.chordExtns.append(Bc)
-            if foundKeyInFile:
-               self.keyBases0.append(Bd)
-               self.keyTypes0.append(Be)
+            self.keyBases0.append(Bd)
+            self.keyTypes0.append(Be)
+
       # we now have lists of the chord bases, types and extensions from the text file
       # we need to extract the chord sequence (i.e. every change, rather than a chord per beat)
       chord_base_sequence, chord_type_sequence, chord_change_index = self.GetChordSequence()
@@ -263,6 +399,71 @@ class HarmonicStructure:
       self.keyBases2, self.keyTypes1 = self.RealignChords(key2, key_type, chord_change_index)
       self.keyBases3, self.keyTypes2 = self.RealignChords(key3, key_type2, chord_change_index)
       self.keyBases4, self.keyTypes2 = self.RealignChords(key4, key_type2, chord_change_index)
+      # Now do searches for I chords
+      self.I_singleKey = self.TwoTrue(self.AnalyseSameness(self.chordBases, self.keyBases1), self.AnalyseSameness(self.chordTypes, self.keyTypes1))
+
+      # the Tap function defines the actions to be taken upon receiving a 'tap' signal,
+      # expected to come from a timekeeper. The actions involve advancing the placekeeper
+
+   def Tick(self):
+      self.tickTimer.start()
+
+   def TickInternal(self):
+      if self.thisTick < self.ticksPerBar-1:
+         self.thisTick += 1
+      else:
+         self.thisTick = 0
+      if self.thisTick%12 == 0: # it's a crotchet beat
+         self.Tap()
+
+   def getTickCount(self):
+      return self.thisTick
+
+   def Tap(self):
+      # advance the beat counter
+      if self.thisBeat >= len(self.chordBases[0])-1: # we are at (or beyond) the end of the bar
+         self.thisBeat = 0
+         if self.thisBar >= len(self.chordBases)-1: # we are at (or beyond) the end of the chord chart
+            self.thisBar = 0 # go back to the start of the chord chart
+         else:
+            self.thisBar += 1 # not at the end of the chord chart; advance the bar counter by 1
+      else:
+         self.thisBeat += 1 # not at the end of the bar; advance the beat counter by 1
+      beat = self.thisBeat
+      bar = self.thisBar
+      # first update the relevant variables
+      if self.keyMode == 0: # no key
+         self.thisKeyBase = -1; self.thisKeyType = ""
+      elif self.keyMode == 1: # key as entered in the GUI
+         self.thisKeyBase = self.keyBaseManual; self.thisKeyType = self.keyTypeManual
+      elif self.keyMode == 2: # key as read in from text file
+         self.thisKeyBase = self.keyBases0[bar][beat]; self.thisKeyType = self.keyTypes0[bar][beat]
+      elif self.keyMode == 3: # key as read in from text file
+         self.thisKeyBase = self.keyBases1[bar][beat]; self.thisKeyType = self.keyTypes1[bar][beat]
+      elif self.keyMode == 4: # key as read in from text file
+         self.thisKeyBase = self.keyBases2[bar][beat]; self.thisKeyType = self.keyTypes1[bar][beat]
+      elif self.keyMode == 5: # key as read in from text file
+         self.thisKeyBase = self.keyBases3[bar][beat]; self.thisKeyType = self.keyTypes2[bar][beat]
+      elif self.keyMode == 6: # key as read in from text file
+         self.thisKeyBase = self.keyBases4[bar][beat]; self.thisKeyType = self.keyTypes2[bar][beat]
+      # then update the relevant GUI fields
+      self.label71.setText("beat: "+str(beat+1)+"  bar: "+str(bar+1))
+      self.label41.setText("chord: "+self.MIDItoNoteName(self.chordBases[bar][beat])+" "+self.chordTypes[bar][beat]+" "+self.chordExtns[bar][beat])
+      self.label01.setText("key: "+self.MIDItoNoteName(self.thisKeyBase)+" "+self.thisKeyType)
+      self.label14.setText(self.MIDItoNoteName(self.keyBases0[bar][beat])+" "+self.keyTypes0[bar][beat])
+      self.label15.setText(self.MIDItoNoteName(self.keyBases1[bar][beat])+" "+self.keyTypes1[bar][beat])
+      self.label16.setText(self.MIDItoNoteName(self.keyBases2[bar][beat])+" "+self.keyTypes1[bar][beat])
+      self.label17.setText(self.MIDItoNoteName(self.keyBases3[bar][beat])+" "+self.keyTypes2[bar][beat])
+      self.label18.setText(self.MIDItoNoteName(self.keyBases4[bar][beat])+" "+self.keyTypes2[bar][beat])
+      # send the latest chord information to the player
+      self.sendScale()
+      self.PP.beat()
+      # if it's the first beat, send a 'new bar' event to the Urlinie (for testing purposes)
+      #if self.thisBeat == 0:
+      #   self.UL.newBar(self.thisBar)
+
+   def CurrentBeat(self):
+      return self.thisBeat
 
    # ------------------------------------------------------------------------------------
    #                    Functions for Scale Theory and Chord Type
@@ -607,6 +808,33 @@ class HarmonicStructure:
       return key_base_sequence, key_type_sequence, key_base_seq_with_ii_Vs,\
       key_base_seq_with_ii_V_Is, key_base_seq_with_ii_Vs_and_ii_V_Is, key_type_sequence_with_ii_V_Is
 
+      # AnalyseSameness goes through two lists with identical structures and marks a 'True' every
+      # beat where they are identical, otherwise 'False'.
+   def AnalyseSameness(self, list1, list2): # list1 and list2 MUST have the same length and structure
+      result = [] # set up a result list
+      for b, bar in enumerate(list1): # go through the bars
+         this_bar = []
+         for n, note in enumerate(bar): # for each beat
+            if list2[b][n] == note: # check if the value of list1 matches the value of list2
+               this_bar.append(True) # If yes, mark it True
+            else:
+               this_bar.append(False) # otherwise, False
+         result.append(this_bar)
+      return result
+
+   def TwoTrue(self, list1, list2): # basically the same as AnalyseSameness, except it checks for both being 'True'
+      result = []
+      for b, bar in enumerate(list1):
+         this_bar = []
+         for n, note in enumerate(bar):
+            if note is True and list2[b][n] is True:
+               this_bar.append(True)
+            else:
+               this_bar.append(False)
+         result.append(this_bar)
+      return result
+
+
    # ------------------------------------------------------------------------------------
    #                Functions for Reading In the Chord Chart Text File
    # ------------------------------------------------------------------------------------
@@ -728,6 +956,33 @@ class HarmonicStructure:
       else:
          print "in HarmonicStructure, NoteNametoMIDI, the note name "+str(n)+" was not recognised;\nreturning it as a 'C'"
          return 0
+   def MIDItoNoteName(self, MIDIno):
+      if MIDIno == 0:
+         return 'C'
+      elif MIDIno == 1:
+         return 'C#'
+      elif MIDIno == 2:
+         return 'D'
+      elif MIDIno == 3:
+         return 'Eb'
+      elif MIDIno == 4:
+         return 'E'
+      elif MIDIno == 5:
+         return 'F'
+      elif MIDIno == 6:
+         return 'F#'
+      elif MIDIno == 7:
+         return 'G'
+      elif MIDIno == 8:
+         return 'Ab'
+      elif MIDIno == 9:
+         return 'A'
+      elif MIDIno == 10:
+         return 'Bb'
+      elif MIDIno == 11:
+         return 'B'
+      else:
+         return '--'
 
       # The BreakDownChordSymbol function takes a chord symbol which has the format 'note-type-extensions', e.g. C#mb9
       # It extracts out the base note (being a letter A-G optionally followed by # or b), then reads the type as
