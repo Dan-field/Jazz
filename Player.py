@@ -25,14 +25,23 @@ class Player:
       self.rangeTop = 85 # MIDI number of top note
       self.rangeBottom = 42 # MIDI number of bottom note
       self.currentUrlinie = []
+      self.baseMotif = []
+      self.workingMotif = []
       self.ULLength = 120 # this is the number of values in the UL vector - which is determined by the Urlinie generator
       self.ULPosition = 0 # index
       self.nextTargetNoteRelative = 0
       self.ULJump = 30
       self.ULBeatWait = 4
       self.ULBeatsToGo = 0
+      self.MotifBeatsToGo = 0
       self.DBAffinity = 127
       self.IAffinity = 127
+      self.swinging = False
+      self.noteDensity = 63
+      self.beatHeirarchy = 127
+      self.heirarchyZero = 0 # extra weight given to the downbeat
+      self.heirarchyOne = 0 # extra weight given to beat 3
+      self.heirarchyThree = 0 # extra weight given to the off quavers
       self.scale = [0, 2, 4, 5, 7, 9, 11] # start with the Major/Ionian scale
       self.scaleBase = 0 # start with 'C'
       self.fullRangedScale = [] # holder for the current scale expressed across the current range of the Player
@@ -45,6 +54,12 @@ class Player:
       self.weight_3 = 22
       self.weight_5 = 22
       self.weight_other = 0
+      self.thisTick = 0
+      self.thisBar = 0
+      self.ticksPerBar = 48
+      self.cumulativeBars = 0
+      self.motifScale = 30
+      self.newULTimer = Timer(0, self.getNewUrlinie, [], False) # the idea is to put the Urlinie generator on its own thread
 
       # set placeholder for references to other classes
       self.UL = None # placeholder for UrLinie object
@@ -57,6 +72,7 @@ class Player:
 
    def setNoteSenderReference(self, newNS):
       self.NS = newNS
+      self.NS.setReverb(0)
 
    def setLeadSheetReference(self, newLS):
       self.LS = newLS
@@ -64,10 +80,22 @@ class Player:
    def setMIDIInputReference(self, newMI):
       self.MI = newMI
 
+   def setSwinging(self, newSwinging):
+      self.swinging = newSwinging
+
    def setScale(self, newScale, newScaleBase):
       self.scale = newScale
       self.scaleBase = newScaleBase
       self.buildFullScale(newScale, newScaleBase)
+
+   def setNoteDensity(self, newDensity):
+      self.noteDensity = newDensity
+
+   def setBeatHeirarchy(self, newBeatHeirarchy):
+      self.beatHeirarchy = newBeatHeirarchy
+      self.heirarchyZero = newBeatHeirarchy-64
+      self.heirarchyOne = (newBeatHeirarchy/2)-32
+      self.heirarchyThree = (-newBeatHeirarchy/2)+32
 
    def getNewUrlinie(self):
       self.currentUrlinie = self.UL.newUrlinie()
@@ -75,15 +103,12 @@ class Player:
       self.ULPosition = 0
       if self.IAffinity > 63:
          beatsToNextI = self.LS.BeatsToNextI()
-         print "Beats to next I :"+str(beatsToNextI)
          if beatsToNextI < 1:
             beatsToNextI = 1
          newValue = 120*self.ULBeatWait/beatsToNextI
-         print "New ULJump value should be "+str(newValue)
-         print "Setting Dial Value to "+str(int(2*(newValue-1)))
          self.MI.setValue20(int(2*(newValue-1))) # adjust the ULJump value
 
-   def setULScaleDegreeWeights(self, newValue):
+   def setScaleDegreeWeights(self, newValue):
       # assume slider_value is an integer 0-127
       # set weight 1 (range 0 to 95):
       if newValue <= 95:
@@ -101,6 +126,44 @@ class Player:
          self.weight_other = newValue - 32
       else:
          self.weight_other = 0
+
+   def setMotifShape(self, newValue):
+      workingMotif = []
+      if newValue < 60:
+         for n in range(60):
+            if n < 59-newValue:
+               workingMotif.append(n-59+newValue+newValue)
+            else:
+               workingMotif.append(59-n)
+      elif newValue < 90:
+         for n in range(60):
+            if n < newValue-60:
+               workingMotif.append(299-(newValue*4)+n)
+            elif n < 120-newValue:
+               workingMotif.append(59-n-((newValue-60)*2))
+            else:
+               workingMotif.append(n-59)
+      elif newValue < 121:
+         for n in range(60):
+            if n < newValue-90:
+               workingMotif.append((newValue*4)-419-n)
+            elif n < 150-newValue:
+               workingMotif.append(n-59+((newValue-90)*2))
+            else:
+               workingMotif.append(59-n)
+      self.baseMotif = workingMotif
+      self.scaleMotif()
+
+
+
+   def setMotifScale(self, newValue): # newValue will range between 64 and -63. Let 30 mean a scale of 1:1 (and -30 mean -1:1)
+      self.motifScale = newValue
+      targetNote = self.nextTargetNoteRelative
+      workingMotif = self.baseMotif
+      scaledMotif = []
+      for element in workingMotif:
+         scaledMotif.append(int((element*newValue)/30)+targetNote)
+      self.workingMotif = scaledMotif
 
    def setULJump(self, newValue):
       self.ULJump = (newValue/2)+1 # value from 1 to 64
@@ -127,8 +190,8 @@ class Player:
             self.finishedUL = True
          rangeSize = self.rangeTop-self.rangeBottom
          nextNoteScaled = (self.rangeBottom+(rangeSize/2))+(UL[pos]*(rangeSize)/240) # scale the UL range (+/- 120) to the instrument's range
-         print "scaled next note: "+str(nextNoteScaled)
          self.nextTargetNoteRelative = nextNoteScaled
+         self.scaleMotif()
          self.ULPosition = pos
          # choose the number of beats till next UL note
          setValue = self.ULBeatWait
@@ -139,6 +202,18 @@ class Player:
          else:
             self.ULBeatsToGo = setValue
 
+   def planWayToNextTargetNote(self):
+      pass
+
+   def scaleMotif(self):
+      if len(self.baseMotif) > 0:
+         finishingNote = self.nextTargetNoteRelative
+         motif = self.baseMotif
+         newMotif = []
+         for note in motif:
+            newMotif.append(note+finishingNote)
+         self.workingMotif = newMotif
+
    def getLastNote(self):
       choice_index = self.weighted_choice([self.weight_1, self.weight_3, self.weight_5, self.weight_other])
       if choice_index is None:
@@ -146,13 +221,89 @@ class Player:
       #print str(choice_index)
       return [1, 3, 5, 0][choice_index]
 
+   def Tick(self, tick):
+      #breakDown = tick%12
+      #if breakDown == 0 or breakDown == 4 or breakDown == 8:
+      #   self.NS.sendNoteShort(40)
+      if tick == 0:
+         self.thisBar += 1
+      self.thisTick = tick # note 'ticks per bar' is set to 48 in the HarmonicStructure class; that's 12 ticks per crotchet
+      if tick%2 == 0: # even-numbered tick, count down on the Motif list
+         self.MotifBeatsToGo -= 1
+         if tick%6 == 0: # it's a quaver tick
+            heirarchyWeight = 0
+            if tick == 0: # this is a downbeat
+               heirarchyWeight = self.heirarchyZero
+            elif tick == 24: # this is beat three
+               heirarchyWeight = self.heirarchyOne
+            elif tick%12 == 0: # this is beat 2 or 4
+               heirarchyWeight = 0
+            else: # this is an off quaver beat
+               heirarchyWeight = self.heirarchyThree
+            if self.noteDensity+heirarchyWeight > random()*126.0:
+               self.playNextMotifNote(self.getLastNote())
+         #if self.noteDensity > 100: # high density; play every note
+         #   if tick%6 == 0: # play a quaver - could be modified later to allow higher densities, but sticking with quaver for now
+         #      self.playNextMotifNote(self.getLastNote())
+
+   def playNextMotifNote(self, scaleDegree=None):
+      if len(self.workingMotif) > 0:
+         notepool = []
+         if scaleDegree is None:
+            notepool = self.fullRangedScale
+         elif scaleDegree == 1:
+            notepool = self.rangedScaleOf1s
+         elif scaleDegree == 3:
+            notepool = self.rangedScaleOf3s
+         elif scaleDegree == 5:
+            notepool = self.rangedScaleOf5s
+         elif scaleDegree == 0:
+            notepool = self.rangedScaleOf0s
+         else:
+            notepool = self.fullRangedScale
+         position = 60-self.MotifBeatsToGo
+         while position < 1:
+            position += 60 # make sure the 'position' value ends up from 0 to 59 so it can index the Motif list
+         while position > 60:
+            position -= 60
+         target = self.workingMotif[position-1]
+         #targetOctavified = self.allOctaves(target)
+         #target = self.pickClosest(targetOctavified, (self.rangeTop+self.rangeBottom)/2)
+         selectedNote = self.pickClosest(notepool, target)
+         #self.NS.sendNoteRaw(selectedNote)
+         self.NS.sendNoteRawWithTickNo(selectedNote, self.thisTick, self.thisBar, self.ticksPerBar)
+      else:
+         print "no motif"
+
+   def playBassAccompaniment(self, chordBase): #chordBase is a MIDI number 0-11, chordType is min, Maj, Dom, dim or mb5
+      self.NS.sendNoteBass(chordBase+36)
+
+   def playAccompaniment(self, chordBase, chordType): #chordBase is a MIDI number 0-11, chordType is min, Maj, Dom, dim or mb5
+      if chordType[0] == "m":
+         self.NS.sendNoteRaw(chordBase+60+3)
+         self.NS.sendNoteRaw(chordBase+60+10)
+      elif chordType[0] == "D":
+         self.NS.sendNoteRaw(chordBase+60+4)
+         self.NS.sendNoteRaw(chordBase+60+10)
+      elif chordType[0] == "M":
+         self.NS.sendNoteRaw(chordBase+60+4)
+         self.NS.sendNoteRaw(chordBase+60+11)
+      elif chordType[0] == "d":
+         self.NS.sendNoteRaw(chordBase+60+3)
+         self.NS.sendNoteRaw(chordBase+60+9)
+
+   def resetBar(self):
+      self.thisBar = 0
+      self.thisTick = 0
+
    def beat(self):
       self.ULBeatsToGo -= 1
       if self.ULBeatsToGo < 1:
-         self.playNextTargetNote(self.getLastNote())
+         # self.playNextTargetNote(self.getLastNote()) # this plays the UL note; it tends to double up with the Motif note
          self.setNextTargetNote()
+         self.MotifBeatsToGo = self.ULBeatsToGo*6 # allows subdivisions of 2 or 3, note Motif list only has 60 values so needs to loop if more than 10 beats
       if self.finishedUL:
-         self.getNewUrlinie()
+         self.newULTimer.start()
 
    def playNextTargetNote(self, scaleDegree=None): # 'scaleDegree' is 1, 3, 5 or 0 to mean '1st, 3rd, 5th or any other' note of the scale
       print "playing scale degree "+str(scaleDegree)
@@ -170,11 +321,11 @@ class Player:
       else:
          notepool = self.fullRangedScale
       target = self.nextTargetNoteRelative
-      print "Target Note: "+str(target)
       #targetOctavified = self.allOctaves(target)
       #target = self.pickClosest(targetOctavified, (self.rangeTop+self.rangeBottom)/2)
       selectedNote = self.pickClosest(notepool, target)
-      self.NS.sendNoteRaw(selectedNote)
+      #self.NS.sendNoteRaw(selectedNote)
+      self.NS.sendNoteRawWithTickNo(selectedNote, self.thisTick, self.thisBar, self.ticksPerBar)
 
    def allOctaves(self, MidiNo): # Takes a single MIDI number input and returns a list of that note in all octaves
       octaves = [element*12 for element in range(11)] # produce list [0, 12, 24 ... 120]

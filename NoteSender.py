@@ -29,12 +29,21 @@ class NoteSender:
       self.this_bar_notes = []
       self.this_bar_times = []
       self.this_bar_count = -1
+      # set up lists to hold records of the notes played
+      self.playedMIDIno = []
+      self.playedTick = []
+      self.playedBar = []
+      self.ticksPerBar = []
 
       self.MM = MidiOut()#"OpenJDK Gervill")
       self.XW = None # placeholder for reference to XML Writer
+      self.PP = None # placeholder for Player reference
 
    def setXMLWriterReference(self, reference):
       self.XW = reference
+
+   def setPlayerReference(self, reference):
+      self.PP = reference
 
    def updateBar(self, newBar):
       if self.XW is not None:
@@ -83,7 +92,32 @@ class NoteSender:
       if self.XW is not None:
          self.XW.addNote(MIDI_No)
 
+   def sendNoteShort(self, MIDI_No, Vel=None, Note_length=None):
+      if Vel is None:
+         Vel = 75
+      if Note_length is None:
+         Note_length = 0.1
+      duration = int(60000*Note_length/self.tempo)
+      self.MM.note(MIDI_No, 0, duration, Vel, 0, 64)
+      self.lastPitch = MIDI_No
+
    def sendNoteRaw(self, MIDI_No, Vel=None, Note_length=None):
+      if Vel is None:
+         Vel = 48
+      if Note_length is None:
+         Note_length = 0.9
+      duration = int(60000*Note_length/self.tempo)
+      self.MM.note(MIDI_No, 0, duration, Vel, 0, 64)
+
+   def sendNoteBass(self, MIDI_No, Vel=None, Note_length=None):
+      if Vel is None:
+         Vel = 55
+      if Note_length is None:
+         Note_length = 3.75
+      duration = int(60000*Note_length/self.tempo)
+      self.MM.note(MIDI_No, 0, duration, Vel, 0, 64)
+
+   def sendNoteRawWithTickNo(self, MIDI_No, tick, bar, ticksPerBar, Vel=None, Note_length=None):
       if Vel is None:
          Vel = 75
       if Note_length is None:
@@ -91,6 +125,24 @@ class NoteSender:
       duration = int(60000*Note_length/self.tempo)
       self.MM.note(MIDI_No, 0, duration, Vel, 0, 64)
       self.lastPitch = MIDI_No
+      self.playedMIDIno.append(MIDI_No)
+      self.playedTick.append(tick)
+      self.playedBar.append(bar)
+      self.ticksPerBar.append(ticksPerBar)
+
+   def showNoteLists(self):
+      print "MIDI numbers played: "+str(self.playedMIDIno)
+      print "Ticks played: "+str(self.playedTick)
+      print "Bars played: "+str(self.playedBar)
+      print "------ sending info to MusicXMLWriter ------"
+      self.XW.writeMelodyFromTickList(0, self.playedMIDIno, self.playedTick, self.playedBar, self.ticksPerBar)
+      self.playedMIDIno = []
+      self.playedTick = []
+      self.playedBar = []
+      self.PP.resetBar()
+
+   def sendNoteLists(self):
+      return self.playedMIDIno, self.playedTick, self.playedBar
 
    def sendAlive(self, botName):
       self.oscOutPublic.sendMessage("/activity/alive", botName)
@@ -157,3 +209,6 @@ class NoteSender:
          return notepool[closest]
       else:
          return -1
+
+   def setReverb(self, setting):
+      self.MM.sendMidiMessage(176, 0, 91, setting) # set the reverb - 176 means control change, 91 means reverb, last value is the level

@@ -17,13 +17,16 @@ from gui import *
 from guicontrols import *
 
 class HarmonicStructure:
-   def __init__(self, textFile=None):
+   def __init__(self, textFile=None, DS=1.0):
       """Initialises a HarmonicStructure object"""
       # set up the class variables
       self.UL = None # placeholder for Urline reference
       self.PP = None # placeholder for Player reference
+      self.MI = None # placeholder for MIDIInput reference
+      self.DS = DS # DISPLAY SCALE
       self.defaultBeatsPerBar = 4 # used if the text file has no timesig
       self.ticksPerBar = 48
+      self.accompany = False # used to signal the Player to accompany on 'tap'
       self.thisTick = 0
       self.thisBeat = 0
       self.thisBar = 0
@@ -75,31 +78,31 @@ class HarmonicStructure:
       [['ionian', ''],['', ''],['mixolydian', ''],['diminished2', 'diminished2'],['', '']],\
       [['', ''],['', ''],['', ''],['diminished', 'melodic7'],['', '']]]
       # initialise the GUI
-      self.d = Display("Harmonic Structure", 800, 240, 10, 10, Color.WHITE)
-      self.label01 = Label("key:                "); self.label01.setFont(Font("Verdana",Font.BOLD,20))
-      self.label02 = Label("no key"); self.label02.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label03 = Label("manual entry"); self.label03.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label04 = Label("read from file"); self.label04.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label05 = Label("analysed from file"); self.label05.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label06 = Label("with ii-V mods"); self.label06.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label07 = Label("with ii-V-I mods"); self.label07.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label08 = Label("with all mods"); self.label08.setFont(Font("Verdana",Font.PLAIN,16))
-      self.label13 = Label("           "); self.label13.setFont(Font("Verdana",Font.PLAIN,16)); self.label13.setForegroundColor(Color.BLUE)
-      self.label14 = Label("           "); self.label14.setFont(Font("Verdana",Font.PLAIN,16)); self.label14.setForegroundColor(Color.BLUE)
-      self.label15 = Label("           "); self.label15.setFont(Font("Verdana",Font.PLAIN,16)); self.label15.setForegroundColor(Color.BLUE)
-      self.label16 = Label("           "); self.label16.setFont(Font("Verdana",Font.PLAIN,16)); self.label16.setForegroundColor(Color.BLUE)
-      self.label17 = Label("           "); self.label17.setFont(Font("Verdana",Font.PLAIN,16)); self.label17.setForegroundColor(Color.BLUE)
-      self.label18 = Label("           "); self.label18.setFont(Font("Verdana",Font.PLAIN,16)); self.label18.setForegroundColor(Color.BLUE)
-      self.label41 = Label("chord:                       "); self.label41.setFont(Font("Verdana",Font.BOLD,20))
-      self.label71 = Label("beat:       bar:      "); self.label71.setFont(Font("Verdana",Font.BOLD,20))
+      self.d = Display("Harmonic Structure", int(800*DS), int(240*DS), int(10*DS), int(10*DS), Color.WHITE)
+      self.label01 = Label("key:                "); self.label01.setFont(Font("Verdana",Font.BOLD,int(20*DS)))
+      self.label02 = Label("no key"); self.label02.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label03 = Label("manual entry"); self.label03.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label04 = Label("read from file"); self.label04.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label05 = Label("analysed from file"); self.label05.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label06 = Label("with ii-V mods"); self.label06.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label07 = Label("with ii-V-I mods"); self.label07.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label08 = Label("with all mods"); self.label08.setFont(Font("Verdana",Font.PLAIN,int(16*DS)))
+      self.label13 = Label("           "); self.label13.setFont(Font("Verdana",Font.PLAIN,int(16*DS))); self.label13.setForegroundColor(Color.BLUE)
+      self.label14 = Label("           "); self.label14.setFont(Font("Verdana",Font.PLAIN,int(16*DS))); self.label14.setForegroundColor(Color.BLUE)
+      self.label15 = Label("           "); self.label15.setFont(Font("Verdana",Font.PLAIN,int(16*DS))); self.label15.setForegroundColor(Color.BLUE)
+      self.label16 = Label("           "); self.label16.setFont(Font("Verdana",Font.PLAIN,int(16*DS))); self.label16.setForegroundColor(Color.BLUE)
+      self.label17 = Label("           "); self.label17.setFont(Font("Verdana",Font.PLAIN,int(16*DS))); self.label17.setForegroundColor(Color.BLUE)
+      self.label18 = Label("           "); self.label18.setFont(Font("Verdana",Font.PLAIN,int(16*DS))); self.label18.setForegroundColor(Color.BLUE)
+      self.label41 = Label("chord:                       "); self.label41.setFont(Font("Verdana",Font.BOLD,int(20*DS)))
+      self.label71 = Label("beat:       bar:      "); self.label71.setFont(Font("Verdana",Font.BOLD,int(20*DS)))
       self.tf01 = TextField("", 5, self.ManualKeyEntered)
-      self.toggle02 = Toggle(0,0,20,20,True,self.Toggle02,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
-      self.toggle03 = Toggle(0,0,20,20,False,self.Toggle03,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
-      self.toggle04 = Toggle(0,0,20,20,False,self.Toggle04,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
-      self.toggle05 = Toggle(0,0,20,20,False,self.Toggle05,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
-      self.toggle06 = Toggle(0,0,20,20,False,self.Toggle06,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
-      self.toggle07 = Toggle(0,0,20,20,False,self.Toggle07,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
-      self.toggle08 = Toggle(0,0,20,20,False,self.Toggle08,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle02 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),True,self.Toggle02,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle03 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),False,self.Toggle03,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle04 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),False,self.Toggle04,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle05 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),False,self.Toggle05,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle06 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),False,self.Toggle06,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle07 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),False,self.Toggle07,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
+      self.toggle08 = Toggle(int(0*DS),int(0*DS),int(20*DS),int(20*DS),False,self.Toggle08,Color.YELLOW,Color.LIGHT_GRAY,Color.BLUE,2)
       if textFile is not None:
          self.InitiateWithTextFile(textFile)
          self.BeatsToNextI()
@@ -119,6 +122,9 @@ class HarmonicStructure:
 
    def setPlayerReference(self, reference):
       self.PP = reference
+
+   def setMIDIInputReference(self, reference):
+      self.MI = reference
 
    def sendScale(self):
       if self.PP is not None:
@@ -213,30 +219,30 @@ class HarmonicStructure:
    #                                       GUI
    # ------------------------------------------------------------------------------------
    def StartGUI(self):
-      self.d.add(self.label01, 25, 6)
-      self.d.add(self.label02, 50, 40)
-      self.d.add(self.label03, 50, 60)
-      self.d.add(self.label04, 50, 80)
-      self.d.add(self.label05, 50, 100)
-      self.d.add(self.label06, 50, 120)
-      self.d.add(self.label07, 50, 140)
-      self.d.add(self.label08, 50, 160)
-      self.d.add(self.label13, 230, 60)
-      self.d.add(self.label14, 230, 80)
-      self.d.add(self.label15, 230, 100)
-      self.d.add(self.label16, 230, 120)
-      self.d.add(self.label17, 230, 140)
-      self.d.add(self.label18, 230, 160)
-      self.d.add(self.label41, 230, 6)
-      self.d.add(self.label71, 570, 6)
-      self.d.add(self.tf01, 170, 60)
-      self.d.add(self.toggle02, 20, 40)
-      self.d.add(self.toggle03, 20, 60)
-      self.d.add(self.toggle04, 20, 80)
-      self.d.add(self.toggle05, 20, 100)
-      self.d.add(self.toggle06, 20, 120)
-      self.d.add(self.toggle07, 20, 140)
-      self.d.add(self.toggle08, 20, 160)
+      self.d.add(self.label01, int(25*self.DS), int(6*self.DS))
+      self.d.add(self.label02, int(50*self.DS), int(40*self.DS))
+      self.d.add(self.label03, int(50*self.DS), int(60*self.DS))
+      self.d.add(self.label04, int(50*self.DS), int(80*self.DS))
+      self.d.add(self.label05, int(50*self.DS), int(100*self.DS))
+      self.d.add(self.label06, int(50*self.DS), int(120*self.DS))
+      self.d.add(self.label07, int(50*self.DS), int(140*self.DS))
+      self.d.add(self.label08, int(50*self.DS), int(160*self.DS))
+      self.d.add(self.label13, int(230*self.DS), int(60*self.DS))
+      self.d.add(self.label14, int(230*self.DS), int(80*self.DS))
+      self.d.add(self.label15, int(230*self.DS), int(100*self.DS))
+      self.d.add(self.label16, int(230*self.DS), int(120*self.DS))
+      self.d.add(self.label17, int(230*self.DS), int(140*self.DS))
+      self.d.add(self.label18, int(230*self.DS), int(160*self.DS))
+      self.d.add(self.label41, int(230*self.DS), int(6*self.DS))
+      self.d.add(self.label71, int(570*self.DS), int(6*self.DS))
+      self.d.add(self.tf01, int(170*self.DS), int(60*self.DS))
+      self.d.add(self.toggle02, int(20*self.DS), int(40*self.DS))
+      self.d.add(self.toggle03, int(20*self.DS), int(60*self.DS))
+      self.d.add(self.toggle04, int(20*self.DS), int(80*self.DS))
+      self.d.add(self.toggle05, int(20*self.DS), int(100*self.DS))
+      self.d.add(self.toggle06, int(20*self.DS), int(120*self.DS))
+      self.d.add(self.toggle07, int(20*self.DS), int(140*self.DS))
+      self.d.add(self.toggle08, int(20*self.DS), int(160*self.DS))
       self.label13.setText(self.MIDItoNoteName(self.keyBaseManual)+" "+self.keyTypeManual)
       self.label14.setText(self.MIDItoNoteName(self.keyBases0[self.thisBar][self.thisBeat])+" "+self.keyTypes0[self.thisBar][self.thisBeat])
       self.label15.setText(self.MIDItoNoteName(self.keyBases1[self.thisBar][self.thisBeat])+" "+self.keyTypes1[self.thisBar][self.thisBeat])
@@ -406,6 +412,9 @@ class HarmonicStructure:
       # expected to come from a timekeeper. The actions involve advancing the placekeeper
 
    def Tick(self):
+      # the Tick function triggers a timer, because this is implemented in Jython as a new thread,
+      # therefore it does not delay the rest of the program
+      # the tickTimer triggers the TickInternal() function
       self.tickTimer.start()
 
    def TickInternal(self):
@@ -413,8 +422,13 @@ class HarmonicStructure:
          self.thisTick += 1
       else:
          self.thisTick = 0
+      self.PP.Tick(self.thisTick)
       if self.thisTick%12 == 0: # it's a crotchet beat
          self.Tap()
+      elif self.thisTick%12 == 11: # next tick will be the start of the next beat
+         self.MI.nextZero()
+      elif self.thisTick%12 == 5: # next tick will be the start of the next quaver
+         self.MI.nextQuav()
 
    def getTickCount(self):
       return self.thisTick
@@ -431,7 +445,12 @@ class HarmonicStructure:
          self.thisBeat += 1 # not at the end of the bar; advance the beat counter by 1
       beat = self.thisBeat
       bar = self.thisBar
-      # first update the relevant variables
+      # send the tap to the Player if required
+      if self.accompany:
+         if beat == 0 or beat == 3:
+            self.PP.playBassAccompaniment(self.chordBases[bar][beat])
+         self.PP.playAccompaniment(self.chordBases[bar][beat], self.chordTypes[bar][beat])
+      # update the relevant variables
       if self.keyMode == 0: # no key
          self.thisKeyBase = -1; self.thisKeyType = ""
       elif self.keyMode == 1: # key as entered in the GUI

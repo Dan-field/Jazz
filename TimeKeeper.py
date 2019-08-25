@@ -27,6 +27,7 @@ class TimeKeeper:
       self.tempoChanged = False
        
    def tick(self):
+      print "TK tick"
       if self.tempoChanged: # the tempo setting has changed since the previous tick
          self.t.setDelay(5.0/self.tempo) # update the new tick delay
          self.tempoChanged = False # reset the changed flag
@@ -40,10 +41,16 @@ class TimeKeeper:
       self.tempoChanged = True
 
    def kill(self):
+      print "stopping Timekeeper timer"
       self.t.stop()
+
+   def restart(self):
+      print "starting Timekeeper timer"
+      self.t.start()
 
    def startTimer(self):
       # run the central counter
+      print "starting Timekeeper timer"
       self.t.start()
                
    def setLeadSheetReference(self, reference):

@@ -18,40 +18,110 @@ class MusicXMLWriter:
       else:
          self.progID = str(progID)
       self.DIVISIONS = 12 # number of counts per crotchet
+      self.ticksPerBar = 48
       self.measureNo = 0
       self.tie_active = False # flag to indicate that a tie has been opened but not closed
       self.tied_note = -1 # MIDI number of note being tied over (initialised to -1 for 'rest')
       self.voice = 1 # 1 Soprano, 2 Alto, 3 Tenor, 4 Bass
       self.flats = True # assumes black notes should be written as flats - will need to be updated once a 'key' functionality is added
+      self.file = None
+      self.fileName = ""
+      self.MIDI_by_bar = []
+      self.Tick_by_bar = []
+
+   def writeMelodyFromTickList(self, key, MIDIList, TickList, BarList, ticksPerBar):
+      totalBars = BarList[-1] # last entry in the BarList shows the total number of bars
+      MIDI_by_bar = []
+      Tick_by_bar = []
+      for bar in range(totalBars):
+         thisBarMIDINos = []
+         thisBarTicks = []
+         for index in range(len(MIDIList)):
+            if BarList[index] == bar:
+               thisBarMIDINos.append(MIDIList[index])
+               thisBarTicks.append(TickList[index])
+               self.ticksPerBar = ticksPerBar[index]
+         MIDI_by_bar.append(thisBarMIDINos)
+         Tick_by_bar.append(thisBarTicks)
+      # now we have three lists of lists, representing the bars
+      print "MIDI numbers by bar: "+str(MIDI_by_bar)
+      print "Tick numbers by bar: "+str(Tick_by_bar)
+      self.startFile()
+      self.startPart()
+      tiedOver = False
+      tiedMIDI = -1
+      for b, bar in enumerate(Tick_by_bar): # go through the bars one at a time
+         if b > 0: # skip over the first bar (dud bar)
+            if len(bar) == 0: # it's an empty bar
+               if tiedOver is True:
+                  self.addNote(tiedMIDI, self.ticksPerBar) # put in a tied minim
+                  self.addMeasure()
+                  tiedOver = False # don't want to tie over more than one extra bar
+               else:
+                  self.addNote(-1, self.ticksPerBar) # add a whole bar rest
+                  self.addMeasure()
+            else: # the bar is not empty
+               noteLengths = []
+               previousOnset = 0
+               for note in bar: # actually note onsets by Tick number
+                  noteLengths.append(note-previousOnset) # note: first value in each bar is the Ticks BEFORE the first note (may be 0)
+                  previousOnset = note
+               noteLengths.append(self.ticksPerBar-previousOnset) # add on the final duration to the end of the bar
+               print "note lengths in bar "+str(b)+": "+str(noteLengths) # Ticks to first note, then durations of subsequent notes
+               for n, noteLength in enumerate(noteLengths): # go through the bar that's just been constructed
+                  if n == 0: # this is the first value (i.e. ticks BEFORE first note)
+                     if noteLength > 0: # we must have a tied over note
+                        self.addNote(tiedMIDI, noteLength, "stop")
+                  else:
+                     thisNote = MIDI_by_bar[b][n-1]
+                     if n == len(noteLengths)-1: # this is the last note in the bar
+                        if len(Tick_by_bar) > b+1: # there's at least one more bar to go
+                           if len(Tick_by_bar[b+1]) > 0: # there's at least one note in the next bar
+                              if Tick_by_bar[b+1][0] > 0: # the next bar's first note is tied over from this bar
+                                 self.addNote(thisNote, noteLength, "start")
+                                 tiedMIDI = thisNote
+                              else:
+                                 self.addNote(thisNote, noteLength)
+                           else:
+                              self.addNote(thisNote, noteLength)
+                        else:
+                           self.addNote(thisNote, noteLength)
+                     else:
+                        self.addNote(thisNote, noteLength)
+               self.addMeasure()
+      self.endPart()
+      self.endFile()
+
+
+   def startFile(self):
       usrFileName = raw_input("please enter a name for the output file\n: ")
       self.fileName = usrFileName+".musicxml"
-      self.file = None
-#      try:
-#         self.file = open(self.fileName, "w")
-#      except (OSError, IOError):
-#         self.file = None
-#         print "\nThere was an issue with the file operation."
-#         print "Please double-check your filename.\n"
-#         print "Note the MusicXML file will attempt to save in the"
-#         print "same folder as the Python files; please ensure you"
-#         print "have write permission for that folder."
-#         return
-#      self.file.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n')
-#      self.file.write('<!DOCTYPE score-partwise PUBLIC\n')
-#      self.file.write('     "-//Recordare//DTD MusicXML 3.1 Partwise//EN"\n')
-#      self.file.write('     "http://www.musicxml.org/dtds/partwise.dtd">\n')
-#      self.file.write('<score-partwise version="3.1">\n')
-#      self.file.write('  <work>\n')
-#      self.file.write('    <work-title>'+str(self.Title)+'</work-title>\n')
-#      self.file.write('  </work>\n')
-#      self.file.write('  <identification>\n')
-#      self.file.write('    <creator type="composer">'+str(self.progID)+'</creator>\n')
-#      self.file.write('  </identification>\n')
-#      self.file.write('  <part-list>\n')
-#      self.file.write('    <score-part id="P1">\n')
-#      self.file.write('      <part-name>melody</part-name>\n')
-#      self.file.write('    </score-part>\n')
-#      self.file.write('  </part-list>\n')
+      try:
+         self.file = open(self.fileName, "w")
+      except (OSError, IOError):
+         self.file = None
+         print "\nThere was an issue with the file operation."
+         print "Please double-check your filename.\n"
+         print "Note the MusicXML file will attempt to save in the"
+         print "same folder as the Python files; please ensure you"
+         print "have write permission for that folder."
+         return
+      self.file.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n')
+      self.file.write('<!DOCTYPE score-partwise PUBLIC\n')
+      self.file.write('     "-//Recordare//DTD MusicXML 3.1 Partwise//EN"\n')
+      self.file.write('     "http://www.musicxml.org/dtds/partwise.dtd">\n')
+      self.file.write('<score-partwise version="3.1">\n')
+      self.file.write('  <work>\n')
+      self.file.write('    <work-title>'+str(self.Title)+'</work-title>\n')
+      self.file.write('  </work>\n')
+      self.file.write('  <identification>\n')
+      self.file.write('    <creator type="composer">'+str(self.progID)+'</creator>\n')
+      self.file.write('  </identification>\n')
+      self.file.write('  <part-list>\n')
+      self.file.write('    <score-part id="P1">\n')
+      self.file.write('      <part-name>melody</part-name>\n')
+      self.file.write('    </score-part>\n')
+      self.file.write('  </part-list>\n')
 
    def startPart(self, key=None):
       if self.file is not None:
@@ -83,14 +153,14 @@ class MusicXMLWriter:
 
    def endPart(self):
       if self.file is not None:
-         self.file.write('      </note>\n')
+         #self.file.write('      </note>\n')
          self.file.write('      <barline location="right">\n')
          self.file.write('        <bar-style>light-heavy</bar-style>\n')
          self.file.write('      </barline>\n')
          self.file.write('    </measure>\n')
          self.file.write('  </part>\n')
 
-   def endXMLFile(self):
+   def endFile(self):
       if self.file is not None:
          self.file.write('</score-partwise>\n')
          self.file.close()

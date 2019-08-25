@@ -5,7 +5,8 @@ from timer import *
 
 
 class Urlinie:
-   def __init__(self):
+   def __init__(self, DS=1.0):
+      self.DS = DS
       seed = range(120)
       self.contour = []
       for number in seed:
@@ -16,10 +17,10 @@ class Urlinie:
       self.undulation_gradient = 0.0
       self.arc_reference = [0, 6, 11, 17, 21, 26, 31, 35, 39, 43, 46, 50, 53, 57, 60, 63, 66, 69, 71, 74, 76, 79, 81, 83, 85, 88, 90, 91, 93, 95, 97, 98, 100, 101, 103, 104, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 115, 116, 117, 117, 118, 118, 119, 119, 119, 119, 120, 120, 120, 120, 120, 120, 120, 120, 119, 119, 119, 119, 118, 118, 117, 117, 116, 115, 115, 114, 113, 112, 111, 110, 109, 108, 107, 106, 104, 103, 101, 100, 98, 97, 95, 93, 91, 90, 88, 85, 83, 81, 79, 76, 74, 71, 69, 66, 63, 60, 57, 53, 50, 46, 43, 39, 35, 31, 26, 21, 17, 11, 6, 0]
       #self.semicircle_reference = [0, 22, 31, 37, 43, 48, 52, 56, 60, 63, 66, 69, 72, 75, 77, 79, 82, 84, 86, 88, 89, 91, 93, 94, 96, 97, 99, 100, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 112, 113, 114, 114, 115, 116, 116, 117, 117, 118, 118, 118, 119, 119, 119, 119, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 119, 119, 119, 119, 118, 118, 118, 117, 117, 116, 116, 115, 114, 114, 113, 112, 112, 111, 110, 109, 108, 107, 106, 105, 104, 103, 102, 100, 99, 97, 96, 94, 93, 91, 89, 88, 86, 84, 82, 79, 77, 75, 72, 69, 66, 63, 60, 56, 52, 48, 43, 37, 31, 22, 0]
-      self.d = Display("Urlinie Contour", 240, 240, 820, 10)
+      self.d = Display("Urlinie Contour", int(240*DS), int(240*DS), int(820*DS), int(10*DS))
       self.display_line = []
       for i, number in enumerate(self.contour):
-         self.display_line.append(Point(i*2, 120-number))
+         self.display_line.append(Point(int(i*2*DS), int((120-number)*DS)))
       for p in self.display_line:
          self.d.add(p)
       self.MI = None # placeholder for MIDI Input reference
@@ -64,7 +65,7 @@ class Urlinie:
       self.display_line = []
       newUrlinie = self.contour
       for i, number in enumerate(newUrlinie):
-         self.display_line.append(Point(i*2, 120-number))
+         self.display_line.append(Point(int(i*2*self.DS), int((120-number)*self.DS)))
       self.d.removeAll()
       for point in self.display_line:
          self.d.add(point)
