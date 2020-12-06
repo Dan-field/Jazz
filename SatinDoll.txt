@@ -1,5 +1,8 @@
 % Satin Doll
 
+timesig = 4/4
+key = C
+
 Dm7 G7 | Dm7 G7   | Em7 A7  | Em7  A7  |
 Am9 D9 | Abm9 Db9 | C Dm7   | Em7  A7  |
 Dm7 G7 | Dm7 G7   | Em7 A7  | Em7  A7  |

@@ -8,22 +8,42 @@
 
 # Note: the assumed MIDI range is from 0 to 127
 
-# There is an intent for this function to follow a 'functional programming'
-# principle by passing all required values (no/minimal global variables).
-
+from gui import *
+from guicontrols import *
 from random import *
 
 class Motif:
-   def __init__(self):
+   def __init__(self, DS=1.0):
       """Initialises a Motif object"""
+      # DS is display scale
       # any initialisation variables go here
+      # GUI
+      self.d = Display("Motif", int(540*DS), int(960*DS), int(620*DS), int(200*DS), Color(227, 240, 255))
+      self.FONT_LABEL = Font("Verdana",Font.PLAIN,int(16*DS))
+      self.new_motif = Push(0, 0, int(30*DS), int(15*DS), self.generateNew, Color.BLUE, Color.WHITE, Color.BLUE, int(2*DS))
+      self.label_nm = Label("New Motif"); self.label_nm.setFont(self.FONT_LABEL); self.label_nm.setForegroundColor(Color.BLUE)
+      #self.checkbox_mute = Checkbox("mute", self.setMute)
+      #self.checkbox_legato = Checkbox("legato", self.setLegato)
+      #self.button_restart = Button("restart sequence", self.reStartSequence)
+      #self.label_zippiness = Label("Zippiness: "+str(int(self.zippiness))+"  ")
+      #self.slider_zippiness = Slider(HORIZONTAL, 0, 64, self.zippiness, self.setZippiness)
+      self.d.add(self.new_motif, int(40*DS), int(40*DS))
+      self.d.add(self.label_nm, int(40*DS), int(15*DS))
+      #self.d.add(self.checkbox_mute, int(40*DS), int(30*DS))
+      #self.d.add(self.checkbox_legato, int(40*DS), int(60*DS))
+      #self.d.add(self.button_restart, int(40*DS), int(100*DS))
+      #self.d.add(self.label_zippiness, int(40*DS), int(140*DS))
+      #self.d.add(self.slider_zippiness, int(40*DS), int(170*DS))
 
-   def generateNew(self, number_of_notes, range_in_semitones, shape=None):
+
+   def generateNew(self, number_of_notes, range_in_semitones, starting_offset, shape=None):
       # shape is a number 1-6 as follows:
       # 1 = rising
-      # 2 = falling
-      # 3 = rising then falling
-      # 4 = falling then rising
+      # 2 = falling (inverse of #1)
+      # 3 = rising then falling back
+      # 4 = inverse of #3
+      # 5 = rising then falling back half way
+      # 6 = inverse of #5
       if shape is None:
          shape = randint(1, 6)
       empty_motif = range(number_of_notes)
@@ -49,6 +69,8 @@ class Motif:
       if shape == 2 or shape == 4 or shape == 6: # we require the negative
          neg_motif = [-a for a in motif]
          motif = neg_motif
+      shifted_motif = [a+starting_offset for a in motif]
+      motif = shifted_motif
       return motif
 
    def invert(self, motif):
@@ -79,5 +101,28 @@ class Motif:
          extended_motif.append(last_note - choice(range(upstep)))
       extended_motif.append(last_note + upstep)
       return extended_motif
+
+   def generateRhythms(self, number_of_notes): # initially, only three rhythms available (3 notes over 2 beats)
+      weights = [1.0, 1.0, 0.5]
+      choice = self.weighted_choice(weights)
+      if choice == 0:
+         return [4, 2, 2]
+      elif choice == 1:
+         return [2, 2, 4]
+      elif choice == 2:
+         return [2, 4, 2]
+
+   def weighted_choice(self, weights):
+      # thanks to Eli Benderski's Website
+      totals = []
+      running_total = 0
+
+      for w in weights:
+         running_total += w
+         totals.append(running_total)
+      rnd = random() * running_total
+      for i, total in enumerate(totals):
+         if rnd < total:
+            return i
 
 

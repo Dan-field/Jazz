@@ -1,34 +1,8 @@
 % Autumn Leaves
 
-Am7
-|
-D7
-|
-GM
-|
-CM
-|
-F#m7b5
-|
-B7
-|
-Em
-|
-Em
-|
-Am7
-|
-D7
-|
-GM
-|
-CM
-|
-F#m7b5
-|
-B7
-|
-Em
-|
-Em
-|
+#key = G
+
+Am7 | D7 | GM | CM | F#m7b5 | B7 | Em | Em |
+Am7 | D7 | GM | CM | F#m7b5 | B7 | Em | Em |
+F#m7b5 | B7 | Em | Em | Am7 | D7 | GM | CM |
+F#m7b5 | B7 | Em | Em | F#m7b5 | B7 | Em | Em |
